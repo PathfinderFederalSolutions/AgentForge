@@ -1,0 +1,13 @@
+python-dotenv
+langchain
+langgraph
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+langchain-cohere
+langchain-mistralai
+numpy
+redis
+pinecone-client
+streamlit
+ray
