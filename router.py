@@ -2,7 +2,8 @@
 import os
 import time
 import numpy as np
-from typing import List, Dict, Any, Union
+import logging
+from typing import List, Dict, Any, Union, Tuple, Optional
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 import anthropic
@@ -25,6 +26,14 @@ from observability import (
 
 load_dotenv()
 
+# Allow Anthropic model control without hardcoding deprecated names.
+# Set ANTHROPIC_MODEL to a valid model (e.g., "claude-opus-4-1-20250805" per latest docs).
+ANTHROPIC_FALLBACK_MODELS = [
+    # Only used if ANTHROPIC_MODEL and payload overrides are not provided.
+    # Keep conservative, modern defaults; do not use date-stamped names that 404.
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-haiku-latest",
+]
 
 def _getenv(*names: str) -> str | None:
     for n in names:
@@ -33,6 +42,126 @@ def _getenv(*names: str) -> str | None:
             return v
     return None
 
+def _anthropic_split_system_and_messages(messages: List[Dict[str, Any]]) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+    """
+    Anthropic Messages API:
+      - top-level `system` string (concatenate all prior system messages)
+      - messages: list[{role: "user"|"assistant", content: [{type:"text", text:"..."}]}]
+    """
+    system_parts: List[str] = []
+    norm: List[Dict[str, Any]] = []
+
+    def _to_text_blocks(content: Any) -> List[Dict[str, str]]:
+        if isinstance(content, list):
+            blocks: List[Dict[str, str]] = []
+            for c in content:
+                if isinstance(c, dict) and c.get("type") == "text" and "text" in c:
+                    blocks.append({"type": "text", "text": str(c["text"])})
+                else:
+                    blocks.append({"type": "text", "text": str(c)})
+            return blocks
+        return [{"type": "text", "text": str(content)}]
+
+    for msg in messages or []:
+        role = (msg.get("role") or "").lower()
+        content = msg.get("content", "")
+        if role == "system":
+            if isinstance(content, list):
+                for c in content:
+                    if isinstance(c, dict) and "text" in c:
+                        system_parts.append(str(c["text"]))
+                    else:
+                        system_parts.append(str(c))
+            else:
+                system_parts.append(str(content))
+            continue
+        if role not in ("user", "assistant"):
+            role = "user"
+        norm.append({"role": role, "content": _to_text_blocks(content)})
+
+    system = "\n".join([s for s in system_parts if s]).strip() or None
+    return system, norm
+
+def _anthropic_model_candidates(payload: Dict[str, Any]) -> List[str]:
+    """
+    Model selection priority:
+    1) payload["anthropic_model"] or payload["target_model"] if provided
+    2) env ANTHROPIC_MODEL
+    3) conservative fallbacks
+    """
+    candidates: List[str] = []
+    for key in ("anthropic_model", "target_model"):
+        v = str(payload.get(key, "")).strip()
+        if v:
+            candidates.append(v)
+    env_m = os.getenv("ANTHROPIC_MODEL", "").strip()
+    if env_m:
+        candidates.append(env_m)
+    candidates.extend(ANTHROPIC_FALLBACK_MODELS)
+    # Deduplicate while preserving order
+    seen = set()
+    out: List[str] = []
+    for m in candidates:
+        if m and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+def _anthropic_call(client, payload: Dict[str, Any]) -> Dict[str, Any]:
+    system, a_messages = _anthropic_split_system_and_messages(payload.get("messages") or [])
+    # Prefer env override to reduce truncation; fallback to payload or default.
+    max_tokens = int(os.getenv("ANTHROPIC_MAX_TOKENS", payload.get("max_tokens") or payload.get("maxTokens") or 2048))
+    temperature = float(payload.get("temperature", 0.2))
+    models = _anthropic_model_candidates(payload)
+
+    last_exc: Optional[Exception] = None
+    for model_name in models:
+        if not model_name:
+            continue
+        try:
+            resp = client.messages.create(
+                model=model_name,
+                system=system,
+                messages=a_messages if a_messages else [
+                    {"role": "user", "content": [{"type": "text", "text": str(payload.get("prompt") or "")}]}
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            text_out = ""
+            try:
+                for blk in getattr(resp, "content", []) or []:
+                    if isinstance(blk, dict) and blk.get("type") == "text":
+                        text_out += blk.get("text", "")
+                    elif hasattr(blk, "type") and getattr(blk, "type") == "text":
+                        text_out += getattr(blk, "text", "")
+            except Exception:
+                text_out = getattr(resp, "content", "") or str(resp)
+            # Keep meta available for callers that need it, but primary output is text_out
+            return {"text": text_out, "raw": resp, "model_used": model_name}
+        except Exception as e:
+            logging.info("Anthropic model failed (%s), trying next: %s", model_name, e)
+            last_exc = e
+            continue
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("Anthropic: no models available to try")
+
+def _anthropic_payload_from_locals(_locals: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build a payload dict from whatever the caller has in scope.
+    Avoids NameError when 'payload' isn't defined.
+    """
+    for key in ("payload", "body", "request", "params", "data"):
+        val = _locals.get(key)
+        if isinstance(val, dict):
+            return val
+    pd: Dict[str, Any] = {}
+    if isinstance(_locals.get("messages"), list):
+        pd["messages"] = _locals["messages"]
+    if "prompt" in _locals and "messages" not in pd:
+        pd["prompt"] = _locals["prompt"]
+    return pd
 
 class ChatGrok:
     def __init__(self, model, api_key):
@@ -222,13 +351,15 @@ class DynamicRouter:
         client = self.llms[model]["client"]
         try:
             if model == "claude-3-5":
-                resp = client.messages.create(
-                    model="claude-3-5-sonnet-20240620",
-                    max_tokens=1024,
-                    messages=messages,
-                    tools=tools,
-                )
-                resp = self._normalize_response(resp, model)
+                try:
+                    payload_dict = _anthropic_payload_from_locals(locals())
+                    result = _anthropic_call(self.llms["claude-3-5"]["client"], payload_dict)
+                    # Return plain string to match other providers
+                    return result.get("text", "")
+                except Exception as e:
+                    logging.info("Anthropic call failed, falling back: %s", e)
+                    # Let outer fallback continue; do not reference 'resp' here.
+                    raise
             else:
                 resp = client.invoke(messages)  # Langchain/Mock invoke
             usage = len(str(getattr(resp, 'content', resp))) // 4  # Approx

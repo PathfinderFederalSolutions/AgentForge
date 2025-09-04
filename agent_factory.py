@@ -3,6 +3,12 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Any
 import time
 
+try:
+    from capability_registry import get_registry
+    _cap_registry = get_registry()
+except Exception:
+    _cap_registry = None
+
 @dataclass
 class AgentSpec:
     name: str
@@ -50,3 +56,16 @@ class AgentFactory:
             del self.registry.specs[spec.name]
             raise RuntimeError(f"Agent for {required_skill} failed eval")
         return spec.name
+
+    def create_agent(self, agent_type: str, **kwargs):
+        # Try CapabilityRegistry first (if present), then fall back to legacy paths.
+        if _cap_registry is not None:
+            try:
+                instance = _cap_registry.create_from_capability(agent_type, **kwargs)
+                if instance is not None:
+                    return instance
+            except Exception:
+                # Soft-fail to legacy behavior
+                pass
+
+        # return legacy construction by agent_type

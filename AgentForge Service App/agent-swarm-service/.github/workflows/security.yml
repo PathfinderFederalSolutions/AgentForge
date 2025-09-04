@@ -1,0 +1,22 @@
+name: Security
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  trivy-fs:
+    name: Trivy File System Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          format: table
+          severity: CRITICAL,HIGH

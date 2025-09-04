@@ -3,6 +3,12 @@ from typing import List, Dict
 from agent_factory import AgentFactory
 from memory_mesh import MemoryMesh
 
+try:
+    from capability_registry import get_registry
+    _cap_registry = get_registry()
+except Exception:
+    _cap_registry = None
+
 class TaskPlanner:
     def __init__(self, mesh: MemoryMesh, factory: AgentFactory):
         self.mesh = mesh
@@ -31,8 +37,30 @@ class TaskPlanner:
                 except Exception:
                     pass
 
-    def plan(self, goal: str) -> List[Dict]:
-        subtasks = self.decompose(goal)
-        self.ensure_skills(goal, subtasks)
-        self.mesh.publish("plan.created", {"goal": goal, "subtasks": subtasks})
-        return subtasks
+    def _normalize_agent_type(self, agent_type: str) -> str:
+        if _cap_registry is None:
+            return agent_type
+        cap = _cap_registry.resolve_capability(agent_type)
+        return cap.name if cap else agent_type
+
+    def plan(self, goal: str, context=None):
+        # Backward-compatible: use _plan_impl if present, else original flow
+        if hasattr(self, "_plan_impl") and callable(getattr(self, "_plan_impl")):
+            plan = self._plan_impl(goal, context)
+        else:
+            plan = self.decompose(goal)
+            try:
+                self.ensure_skills(goal, plan)
+            except Exception:
+                pass
+
+        # Normalize any task.agent_type or dict["agent_type"] if present
+        try:
+            for t in plan or []:
+                if hasattr(t, "agent_type"):
+                    t.agent_type = self._normalize_agent_type(getattr(t, "agent_type"))
+                elif isinstance(t, dict) and "agent_type" in t:
+                    t["agent_type"] = self._normalize_agent_type(t["agent_type"])
+        except Exception:
+            pass
+        return plan

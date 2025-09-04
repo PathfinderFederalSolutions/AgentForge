@@ -1,5 +1,6 @@
 from typing import List, Dict
 import asyncio
+import time
 from forge_types import Task
 from agents import Agent, AgentSwarm
 from router_v2 import MoERouter, Provider
@@ -75,7 +76,9 @@ class Orchestrator:
                 pass
 
             loop = asyncio.get_running_loop()
+            t0 = time.perf_counter()
             result = await loop.run_in_executor(None, agent.process, task)
+            latency_ms = (time.perf_counter() - t0) * 1000.0
 
             # trivial reward: length/quality heuristic
             reward = 1.0 if result and isinstance(result, str) and len(result) > 0 else 0.0
@@ -85,7 +88,7 @@ class Orchestrator:
             for post_cap in {cap, "Scalability and Performance"}:
                 try:
                     self.enforcer.enforce_post_task(
-                        {"result": result, "id": st["id"]},
+                        {"result": result, "id": st["id"], "metrics": {"latency_ms": latency_ms}},
                         post_cap,
                     )
                 except Exception:
@@ -110,6 +113,7 @@ class Orchestrator:
                     "provider": pkey,
                     "result": (result or "")[:500],
                     "approval": decision,
+                    "metrics": {"latency_ms": latency_ms},
                 },
             )
             return {
@@ -117,6 +121,7 @@ class Orchestrator:
                 "provider": pkey,
                 "result": result,
                 "approval": decision,
+                "metrics": {"latency_ms": latency_ms},
             }
 
         results = await asyncio.gather(
