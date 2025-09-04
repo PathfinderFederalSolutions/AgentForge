@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import concurrent.futures
 import numpy as np
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -14,10 +13,9 @@ from langchain_cohere import ChatCohere
 from langchain_mistralai import ChatMistralAI
 from typing import List
 from router import DynamicRouter  # Import router from orchestrator
-from forge_types import Task, AgentContract, MemoryScope  # Contracts
+from forge_types import Task, AgentContract  # Contracts (MemoryScope unused)
 from memory import EvoMemory  # Memory
-from observability import log_with_id, latency_hist, error_counter, token_counter, cost_counter # Observability
-import os, time, json, redis
+from observability import log_with_id, latency_hist, error_counter, token_counter  # Observability
 from agent_factory import AgentRegistry, AgentFactory, AgentSpec
 from memory_mesh import MemoryMesh
 
@@ -54,7 +52,7 @@ class Agent:
             # Retrieve memories based on scopes
             memories = []
             for scope in task.memory_scopes:
-                memories.extend(self.memory.semantic_search(task.description, min_score=0.7, scopes=[scope.type]))
+                memories.extend(self.memory.semantic_search(task.description, min_score=0.7, scopes=[scope]))
             # Build messages with memories and tools
             messages = [
                 {"role": "system", "content": f"Process task as {self.contract.name}. Budget: {task.budget}"},
@@ -87,51 +85,62 @@ class CriticAgent(Agent):
 class AgentSwarm:
     def __init__(self, num_agents=2):  # Start small for MVP
         self.router = DynamicRouter()  # Shared
+        self._init_redis()
+        self.streaming_enabled = True
+        self._build_llms()
+        # Ensure at least one fallback model for local/dev so Orchestrator can run
+        if not self.llms:
+            self.llms = {"mock": object()}
+        self._init_mesh_and_factory()
+        self._register_builders()
+        self._init_agents(num_agents)
+        self._ensure_streams()
 
-        # Robust Redis config with sensible defaults
+    def _init_redis(self) -> None:
         redis_url = os.getenv("REDIS_URL")
         if not redis_url:
             host = os.getenv("REDIS_HOST", "localhost")
             port = os.getenv("REDIS_PORT", "6379")
             db = os.getenv("REDIS_DB", "0")
             redis_url = f"redis://{host}:{port}/{db}"
-        self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
+        try:
+            self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
+            # Fast liveness probe; if fails, disable streaming to avoid hangs
+            try:
+                self.redis.ping()
+            except Exception:
+                self.redis = None
+        except Exception:
+            self.redis = None
 
-        # Build provider clients only if keys exist (uses fallbacks)
+    def _build_llms(self) -> None:
         self.llms = {}
-        oai_key = _getenv("OPENAI_API_KEY", "OPENAI_KEY")
+        oai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
         if oai_key:
             self.llms["gpt-5"] = ChatOpenAI(model="gpt-5", api_key=oai_key)
-
-        anth_key = _getenv("ANTHROPIC_API_KEY", "ANTHROPIC_KEY")
+        anth_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_KEY")
         if anth_key:
             self.llms["claude-3-5"] = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anth_key)
-
-        google_key = _getenv("GOOGLE_API_KEY", "GOOGLE_KEY")
+        google_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_KEY")
         if google_key:
             self.llms["gemini-1-5"] = ChatGoogleGenerativeAI(model="gemini-1.5-pro", api_key=google_key)
-
-        mistral_key = _getenv("MISTRAL_API_KEY", "MISTRAL_KEY")
+        mistral_key = os.getenv("MISTRAL_API_KEY") or os.getenv("MISTRAL_KEY")
         if mistral_key:
             self.llms["mistral-large"] = ChatMistralAI(model="mistral-large-latest", api_key=mistral_key)
-
-        cohere_key = _getenv("COHERE_API_KEY", "CO_API_KEY")
+        cohere_key = os.getenv("COHERE_API_KEY") or os.getenv("CO_API_KEY")
         if cohere_key:
             self.llms["cohere-command"] = ChatCohere(model="command-r-plus", api_key=cohere_key)
-
-        xai_key = _getenv("XAI_API_KEY", "XAI_KEY")
+        xai_key = os.getenv("XAI_API_KEY") or os.getenv("XAI_KEY")
         if xai_key:
             self.llms["grok-4"] = ChatGrok(model="grok-4", api_key=xai_key)
 
-        # Shared memory mesh and agent factory (non-breaking addition)
+    def _init_mesh_and_factory(self) -> None:
         self.mesh = MemoryMesh(ns=os.getenv("AF_NAMESPACE", "global"))
         self.registry = AgentRegistry()
         self.factory = AgentFactory(self.registry)
 
-        # Register builders so the factory can create Agents bound to this swarm
+    def _register_builders(self) -> None:
         def _builder(spec: AgentSpec):
-            # pick first available model or fallback
-            model = next(iter(self.llms.keys()), "gpt-5")
             contract = AgentContract(
                 name=spec.name,
                 capabilities=spec.capabilities,
@@ -139,32 +148,38 @@ class AgentSwarm:
                 tools=spec.tools,
                 budget=spec.policy.get("budget", 1000),
             )
-            return Agent(contract, self.router, EvoMemory(namespace=spec.name))
-        self.registry.register_builder("gpt-5", _builder)
-        self.registry.register_builder("gpt-4o", _builder)
-        self.registry.register_builder("claude-3-5", _builder)
-        self.registry.register_builder("mistral-large", _builder)
-        self.registry.register_builder("cohere-command", _builder)
-        self.registry.register_builder("gemini-1-5", _builder)
+            return Agent(contract)
+        for key in ["gpt-5", "gpt-4o", "claude-3-5", "mistral-large", "cohere-command", "gemini-1-5", "mock"]:
+            self.registry.register_builder(key, _builder)
 
-        # Create agents with contracts from the available providers
+    def _init_agents(self, num_agents: int) -> None:
+        base_models = list(self.llms.keys()) or ["mock"]
         self.agents = [
-            Agent(AgentContract(name=f"worker_{i}", capabilities=[model], memory_scopes=[], tools=[], budget=1000, deadline=None))
-            for i, model in enumerate(list(self.llms.keys())[:num_agents])
+            Agent(AgentContract(name=f"worker_{i}", capabilities=[base_models[i % len(base_models)]], memory_scopes=[], tools=[], budget=1000, deadline=None))
+            for i in range(max(1, num_agents))
         ]
-        self.rate_limits = {i: {"requests": 0, "last_reset": time.time(), "max_rpm": 500} for i in range(num_agents)}
-        # Redis for event bus (reuse the same client)
+        self.rate_limits = {i: {"requests": 0, "last_reset": time.time(), "max_rpm": 500} for i in range(len(self.agents))}
         self.stream_name = "agent_tasks"
         self.results_stream = "agent_results"
         self.consumer_group = "workers"
+
+    def _ensure_streams(self) -> None:
+        if not self.redis:
+            self.streaming_enabled = False
+            return
         try:
             self.redis.xgroup_create(self.stream_name, self.consumer_group, mkstream=True)
         except redis.exceptions.ResponseError:
             pass
+        except Exception:
+            self.streaming_enabled = False
+            return
         try:
             self.redis.xgroup_create(self.results_stream, self.consumer_group, mkstream=True)
         except redis.exceptions.ResponseError:
             pass
+        except Exception:
+            self.streaming_enabled = False
 
     # Optional: expose a helper to ensure agents for required skills at runtime
     def ensure_agents_for_skills(self, goal: str, skills: list[str]) -> list[str]:
@@ -178,12 +193,18 @@ class AgentSwarm:
         return names
 
     def dispatch_tasks(self, tasks: List[Task]):
+        if not self.redis or not self.streaming_enabled:
+            for task in tasks:
+                log_with_id(task.id, "Streaming disabled; dispatch skipped")
+            return
         for task in tasks:
             task_data = task.model_dump_json()
             self.redis.xadd(self.stream_name, {"task": task_data})
             log_with_id(task.id, f"Dispatched task {task.id} to stream")
 
     def worker_process(self, agent: Agent):
+        if not self.redis or not self.streaming_enabled:
+            return None
         messages = self.redis.xreadgroup(self.consumer_group, agent.contract.name, {self.stream_name: ">"}, count=1, block=5000)
         if messages:
             for _, msgs in messages:
@@ -196,6 +217,11 @@ class AgentSwarm:
         return None
 
     def parallel_process(self, tasks: List[Task], fixed_code=None):
+        if not self.redis or not self.streaming_enabled:
+            # Fallback: process sequentially when streams are unavailable
+            results = [agent.process(t) for agent, t in zip(self.agents, tasks[:len(self.agents)])]
+            mem_usage = np.sqrt(len(tasks)) * np.log(len(tasks) + 1)
+            return results, mem_usage
         self.dispatch_tasks(tasks)  # Manager dispatches
         results = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -216,6 +242,9 @@ class AgentSwarm:
         return results, mem_usage
 
     def judge_results(self, task_id: str, num_results: int):
+        if not self.redis or not self.streaming_enabled:
+            log_with_id(task_id, "Streaming disabled; judge_results noop")
+            return "No results"
         results = []
         collected = 0
         while collected < num_results:
@@ -247,10 +276,9 @@ class MetaLearner:
         for result in results:
             messages = [{"role": "user", "content": self.prompt.format(output=result)}]
             eval_response = self.router.call("claude-3-5", messages, task_id=task.id)
-            # Parse score (assume response like "Score: 0.85")
             try:
                 score = float(eval_response.content.split("Score: ")[-1].strip())
-            except:
+            except Exception:
                 score = 0.5
             scores.append(score)
         self.weights += np.array(scores) / np.sum(scores)
