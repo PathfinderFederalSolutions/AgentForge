@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats-worker
+  namespace: agentforge-scif
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats-worker
+  template:
+    metadata:
+      labels:
+        app: nats-worker
+    spec:
+      containers:
+        - name: worker
+          image: registry.local/agentforge:latest@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+          command: ["python","-m","swarm.workers.nats_worker"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"

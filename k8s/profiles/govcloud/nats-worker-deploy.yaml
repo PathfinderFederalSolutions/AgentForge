@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats-worker
+  namespace: agentforge-gov
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nats-worker
+  template:
+    metadata:
+      labels:
+        app: nats-worker
+    spec:
+      containers:
+        - name: worker
+          image: registry.govcloud.example/agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-m","swarm.workers.nats_worker"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"

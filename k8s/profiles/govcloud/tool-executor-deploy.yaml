@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-executor
+  namespace: agentforge-gov
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tool-executor
+  template:
+    metadata:
+      labels:
+        app: tool-executor
+    spec:
+      containers:
+        - name: tool-executor
+          image: registry.govcloud.example/agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-m","swarm.workers.tool_executor_worker"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-gov
+  labels:
+    compliance: fedramp
+    app.kubernetes.io/part-of: agentforge

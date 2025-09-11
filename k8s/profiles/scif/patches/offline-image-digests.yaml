@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: agentforge-scif
+spec:
+  template:
+    spec:
+      containers:
+        - name: orchestrator
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-executor
+  namespace: agentforge-scif
+spec:
+  template:
+    spec:
+      containers:
+        - name: tool-executor
+          imagePullPolicy: IfNotPresent

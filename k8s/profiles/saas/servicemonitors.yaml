@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agentforge-services
+  namespace: agentforge-saas
+spec:
+  selector:
+    matchExpressions:
+      - {key: app, operator: In, values: [nats]}
+  namespaceSelector:
+    matchNames: [agentforge-saas]
+  endpoints:
+    - port: monitoring
+      interval: 30s

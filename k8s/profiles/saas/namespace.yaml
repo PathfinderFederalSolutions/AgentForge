@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-saas
+  labels:
+    deployment-tier: saas
+    app.kubernetes.io/part-of: agentforge

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-worker
+  namespace: agentforge-saas
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: temporal-worker
+  template:
+    metadata:
+      labels:
+        app: temporal-worker
+    spec:
+      containers:
+        - name: temporal-worker
+          image: agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-m","swarm.workers.temporal_worker"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: agentforge-gov
+  annotations:
+    compliance.fips.enabled: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-executor
+  namespace: agentforge-gov
+  annotations:
+    compliance.fips.enabled: "true"

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: results-sink
+  namespace: agentforge-scif
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: results-sink
+  template:
+    metadata:
+      labels:
+        app: results-sink
+    spec:
+      containers:
+        - name: sink
+          image: registry.local/agentforge:latest@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+          command: ["python","-m","swarm.workers.results_sink_worker"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"

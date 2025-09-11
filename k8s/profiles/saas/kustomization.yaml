@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agentforge-saas
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - nats.yaml
+  - temporalite.yaml
+  - nats-worker-deploy.yaml
+  - temporal-worker-deploy.yaml
+  - tool-executor-deploy.yaml
+  - orchestrator-deploy.yaml
+  - api-deploy.yaml
+  - pgvector.yaml
+  - network-policies.yaml
+  - rbac.yaml
+  - otel-collector.yaml
+  - results-sink-deploy.yaml
+  - nats-prometheus-exporter.yaml
+  - servicemonitors.yaml
+
+patches:
+  - path: patches/saas-labels.yaml
+  - path: patches/limit-egress-external.yaml

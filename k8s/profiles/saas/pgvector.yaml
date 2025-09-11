@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgvector
+  namespace: agentforge-saas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgvector
+  template:
+    metadata:
+      labels:
+        app: pgvector
+    spec:
+      containers:
+        - name: pgvector
+          image: ankane/pgvector:latest
+          env:
+            - name: POSTGRES_PASSWORD
+              value: example
+          ports:
+            - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgvector
+  namespace: agentforge-saas
+spec:
+  selector:
+    app: pgvector
+  ports:
+    - port: 5432
+      targetPort: 5432
