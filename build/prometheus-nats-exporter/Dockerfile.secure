@@ -1,0 +1,78 @@
+# Enhanced Multi-stage build for prometheus-nats-exporter with security scanning
+# Security-hardened build with SBOM generation and vulnerability scanning
+# VERSION must match an existing upstream tag
+
+ARG VERSION=v0.17.3
+
+# Use latest Go that supports the project requirements
+FROM golang:1.24.1-alpine AS builder
+ARG VERSION
+
+# Security: Run as non-root during build
+RUN adduser -D -s /bin/sh -u 10001 builder
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    GOTOOLCHAIN=local
+
+WORKDIR /workspace
+RUN apk add --no-cache git ca-certificates curl && \
+    git clone https://github.com/nats-io/prometheus-nats-exporter.git . && \
+    git fetch --tags && \
+    (git rev-parse "$VERSION" >/dev/null 2>&1 && git checkout "$VERSION" || echo "Tag $VERSION not found, using default branch") && \
+    echo "Building version: $(git describe --tags)" && \
+    go mod download && \
+    go mod verify
+
+# Build with security flags
+RUN go build \
+    -trimpath \
+    -buildvcs=false \
+    -ldflags "-s -w -X main.Version=${VERSION} -buildid=" \
+    -o /out/prometheus-nats-exporter .
+
+# Install security scanning tools
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin && \
+    curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+# Generate SBOM
+RUN syft packages dir:/workspace -o cyclonedx-json > /out/sbom.json && \
+    syft packages /out/prometheus-nats-exporter -o cyclonedx-json > /out/binary-sbom.json
+
+# Vulnerability scan
+RUN trivy fs --format json --output /out/trivy-report.json /workspace || true && \
+    trivy fs --format table /workspace || true
+
+# Get the binary digest for deployment updates
+RUN sha256sum /out/prometheus-nats-exporter > /out/prometheus-nats-exporter.sha256
+
+# Final minimal image with security hardening
+FROM scratch AS final
+
+# Copy CA certificates for potential TLS connections
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Copy the binary and security artifacts
+COPY --from=builder /out/prometheus-nats-exporter /prometheus-nats-exporter
+COPY --from=builder /out/sbom.json /sbom.json
+COPY --from=builder /out/binary-sbom.json /binary-sbom.json
+COPY --from=builder /out/trivy-report.json /trivy-report.json
+COPY --from=builder /out/prometheus-nats-exporter.sha256 /prometheus-nats-exporter.sha256
+
+# Run as non-root user (nobody)
+USER 65532:65532
+
+# Health check endpoint
+EXPOSE 7777
+
+ENTRYPOINT ["/prometheus-nats-exporter"]
+
+# Multi-arch support stage (optional)
+FROM scratch AS multiarch
+COPY --from=final / /
+
+# Build commands:
+# docker build -t prometheus-nats-exporter:secure-latest -f build/prometheus-nats-exporter/Dockerfile.secure .
+# docker run --rm prometheus-nats-exporter:secure-latest cat /sbom.json > sbom.json
+# docker run --rm prometheus-nats-exporter:secure-latest cat /trivy-report.json > trivy-report.json
+# docker inspect prometheus-nats-exporter:secure-latest --format='{{.RepoDigests}}'

@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-executor
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tool-executor
+  template:
+    metadata:
+      labels:
+        app: tool-executor
+    spec:
+      serviceAccountName: tool-executor-sa
+      securityContext:
+        runAsUser: 1000
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: tool-executor
+          image: agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-m","swarm.workers.tool_executor"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            # runAsNonRoot removed because some images use non-numeric users; rely on pod-level runAsUser
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+            - secretRef:
+                name: agentforge-secrets
+            - secretRef:
+                name: db-secrets
+                optional: true
+            - secretRef:
+                name: s3-secrets
+                optional: true
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: METRICS_PORT
+              value: "9000"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.agentforge-staging.svc.cluster.local:4318"
+          ports:
+            - name: metrics
+              containerPort: 9000
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tool-executor
+  namespace: agentforge-staging
+  labels:
+    app: tool-executor
+spec:
+  selector:
+    app: tool-executor
+  ports:
+    - name: metrics
+      port: 9000
+      targetPort: 9000

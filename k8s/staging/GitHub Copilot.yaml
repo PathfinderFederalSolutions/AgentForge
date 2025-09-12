@@ -1,0 +1,70 @@
+GitHub Copilot
+
+Plan (pseudocode)
+- TestStep 1: Cleanly create and wait for Job
+  - kubectl delete existing job
+  - kubectl create -f k8s/staging/nats-backlog-job.yaml
+  - kubectl wait for condition=complete
+- TestStep 2: Assert Job succeeded
+  - Assert batch/v1 Job nats-backlog .status.succeeded == 1
+- TestStep 3: Verify JetStream state using short-lived nats-box pod
+  - Wait for JS API readiness
+  - Assert streams exist: swarm_jobs, swarm_hitl, swarm_results
+  - Assert durable consumer worker-staging exists and num_pending >= 1
+  - Cleanup the pod
+
+Yaml
+language: yaml
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - kubectl -n agentforge-staging delete job nats-backlog --ignore-not-found
+  - kubectl -n agentforge-staging create -f k8s/staging/nats-backlog-job.yaml
+  - kubectl -n agentforge-staging wait --for=condition=complete --timeout=300s job/nats-backlog
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+assert:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: nats-backlog
+      namespace: agentforge-staging
+    status:
+      succeeded: 1
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - |
+    NS="agentforge-staging"
+    SVC="nats.${NS}.svc.cluster.local:4222"
+    POD="nats-verify-$(date +%s)"
+    # Launch verifier pod
+    kubectl -n "$NS" run "$POD" --restart=Never --image=natsio/nats-box:latest -- \
+      sh -lc '
+        set -euo pipefail
+        # Wait for JetStream
+        for i in $(seq 1 60); do
+          if nats --server "'"$SVC"'" req '"'"'$JS.API.INFO'"'"' '"'"'{}'"'"' >/dev/null 2>&1; then
+            echo "JetStream ready"; break; fi
+          sleep 2
+          [ "$i" -eq 60 ] && echo "JetStream not ready" && exit 1
+        done
+        # Verify streams
+        nats --server "'"$SVC"'" stream info swarm_jobs  >/dev/null
+        nats --server "'"$SVC"'" stream info swarm_hitl  >/dev/null
+        nats --server "'"$SVC"'" stream info swarm_results >/dev/null
+        # Verify consumer exists and has backlog
+        CI_JSON="$(nats --server "'"$SVC"'" consumer info swarm_jobs worker-staging -j)"
+        echo "$CI_JSON" | jq -r .name | grep -qx "worker-staging"
+        PENDING="$(echo "$CI_JSON" | jq -r .num_pending)"
+        echo "num_pending=$PENDING"
+        test "${PENDING:-0}" -ge 1
+      '
+    # Give the pod a moment and fetch logs for visibility
+    kubectl -n "$NS" wait --for=condition=Ready --timeout=60s "pod/$POD" || true
+    kubectl -n "$NS" logs "$POD" --tail=-1 || true
+    kubectl -n "$NS" delete pod "$POD" --ignore-not-found >/dev/null 2>&1 || true
+
+Note: After adding this file, run codacy_cli_analyze with rootPath=/Users/baileymahoney/AgentForge and file=k8s/staging/test_nats-backlog-job.yaml. If MCP tools aren’t available, check GitHub Settings > Copilot > Enable MCP servers or contact Codacy support.

@@ -1,0 +1,51 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase06_ar_voice
+title: AR Overlay + Voice Assistant (Prototype)
+objective: Context-aware prompts and overlays with provenance; offline-capable TTS/ASR where possible.
+preconditions:
+  - description: Comms gateway online; geospatial events flowing.
+inputs:
+  - path: services/comms-gateway/app/main.py
+  - path: swarm/protocol/messages.py
+outputs:
+  - path: clients/ar-prototype/ (Android ARCore)
+  - path: services/ar-context/app/main.py
+code_changes:
+  - path: services/ar-context/app/main.py
+    action: create
+    description: Context packager that merges user_location, threat_context, ROE policy → generates “speakable” prompts + overlay payload; logs to evidence.
+    acceptance_criteria:
+      - Every AR/voice output references evidence items (ids) and policy snapshot.
+k8s_changes:
+  - path: k8s/staging/tools-codeexec-deploy.yaml
+    action: update
+    description: Add ar-context service; resource limits; readOnlyRootFilesystem.
+metrics:
+  - name: ar_latency_seconds
+    type: histogram
+    producer: services/ar-context/app/main.py
+    prom_rule: ar_latency_breach
+security_compliance:
+  fedramp_mapping:
+    - control: PL-2
+      note: Usage boundaries; OPSEC scrubbing before externalization.
+  cmmc_mapping:
+    - practice: CM.L2-3.4.1
+      note: Versioned AR prompt schemas; enforced via CI.
+tests:
+  integration:
+    - path: tests/test_ar_context_provenance.py
+      description: Confirms evidence linkage for each overlay/prompt.
+runbooks:
+  - path: runbooks/fusion/roc_eer.md
+    description: Note how confidence appears to soldiers (avoid overtrust).
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Android/AR build lane + signing attestations.
+evidence:
+  bundle_extensions:
+    - key: ar_prompts
+      from_path: services/ar-context/logs/*.jsonl
+      description: AR speech/overlay provenance per event.

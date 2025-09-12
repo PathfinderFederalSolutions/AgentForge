@@ -1,0 +1,81 @@
+name: ui-tactical-dashboard
+
+on:
+  push:
+    paths:
+      - 'ui/tactical-dashboard/**'
+      - '.github/workflows/ui-dashboard.yml'
+  pull_request:
+    paths:
+      - 'ui/tactical-dashboard/**'
+  workflow_dispatch: {}
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ui/tactical-dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build
+        run: pnpm build
+
+      - name: Security audit (npm)
+        run: pnpm audit || true
+
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          scan-ref: 'ui/tactical-dashboard'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Snapshot PNG
+        run: |
+          pnpm preview --port 5173 &
+          PREV_PID=$!
+          npx wait-on http://localhost:5173
+          mkdir -p snapshots
+          npx puppeteer browsers install chrome
+          node scripts/snapshot.mjs || true
+          kill $PREV_PID || true
+
+      - name: Lighthouse CI
+        run: |
+          pnpm add -D @lhci/cli
+          pnpm preview --port 5173 &
+          PREV_PID=$!
+          npx wait-on http://localhost:5173
+          npx lhci autorun --collect.url=http://localhost:5173 --upload.target=filesystem --upload.outputDir=./lhci || true
+          kill $PREV_PID || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tactical-dashboard-artifacts-${{ github.sha }}
+          path: |
+            ui/tactical-dashboard/snapshots/*.png
+            ui/tactical-dashboard/lhci/**
+          if-no-files-found: warn

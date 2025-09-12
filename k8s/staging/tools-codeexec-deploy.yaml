@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-codeexec
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tool-codeexec
+  template:
+    metadata:
+      labels:
+        app: tool-codeexec
+    spec:
+      containers:
+        - name: codeexec
+          image: python:3.11-slim
+          command: ["python","-m","services.tools.codeexec.app.main"]
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          ports:
+            - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tool-codeexec
+  namespace: agentforge-staging
+spec:
+  selector:
+    app: tool-codeexec
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http

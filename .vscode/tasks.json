@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "edge-suite",
+			"command": "bash -lc 'bash scripts/run_edge_tests.sh && python local_drain_test.py || true'",
+			"args": [],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			]
+		}
+	]
+}

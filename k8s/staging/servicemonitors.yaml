@@ -1,0 +1,126 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: orchestrator-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: orchestrator
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tool-executor-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: tool-executor
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keda-metrics-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keda-metrics-apiserver
+  namespaceSelector:
+    matchNames: ["keda"]
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keda-operator-metrics-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keda-operator
+  namespaceSelector:
+    matchNames: ["keda"]
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nats-prometheus-exporter
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: nats-prom-exporter
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: api
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: results-sink-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: results-sink
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

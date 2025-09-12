@@ -1,0 +1,10 @@
+   1 ConfigMap
+   6 Deployment
+   1 Namespace
+   4 NetworkPolicy
+   1 Role
+   1 RoleBinding
+   1 Secret
+   2 Service
+   1 ServiceAccount
+   1 ServiceMonitor

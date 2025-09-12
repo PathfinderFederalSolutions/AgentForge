@@ -1,0 +1,45 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agentforge-edge-services
+  namespace: agentforge-edge
+spec:
+  selector:
+    matchExpressions:
+      - {key: app, operator: In, values: [nats]}
+  namespaceSelector:
+    matchNames: [agentforge-edge]
+  endpoints:
+    - port: monitoring
+      interval: 30s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: syncdaemon
+  namespace: agentforge-edge
+  labels:
+    app: syncdaemon
+spec:
+  selector:
+    app: syncdaemon
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: syncdaemon
+  namespace: agentforge-edge
+spec:
+  selector:
+    matchLabels:
+      app: syncdaemon
+  namespaceSelector:
+    matchNames: [agentforge-edge]
+  endpoints:
+    - port: http
+      interval: 30s

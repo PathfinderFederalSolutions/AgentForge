@@ -1,0 +1,78 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agentforge-staging
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - nats.yaml
+  - temporalite.yaml
+  - nats-worker-deploy.yaml
+  - temporal-worker-deploy.yaml
+  - hpa-temporal-worker.yaml
+  - hitl-ui.yaml
+  - keda-nats-worker.yaml
+  - pgvector.yaml
+  - servicemonitors.yaml
+  - rbac.yaml
+  - network-policies.yaml
+  - tool-executor-deploy.yaml
+  - orchestrator-deploy.yaml
+  - pg-maintenance-cronjob.yaml
+  - otel-collector.yaml
+  - allow-backlog-to-nats.yaml
+  - pvc-app-var.yaml
+  - alerts-keda.yaml
+  - nats-prometheus-exporter.yaml
+  - nats-prometheus-exporter-rbac.yaml
+  - api-deploy.yaml
+  - results-sink-deploy.yaml
+  - keda-results-sink.yaml
+
+# Ensure the dashboard is referenced correctly
+configMapGenerator:
+  - name: grafana-tool-executor-dashboard
+    files:
+      - grafana/tool-executor-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+  # Removed redundant NATS monitoring patches; nats.yaml already sets args and exposes 8222
+  # - target:
+  #     version: v1
+  #     kind: Service
+  #     name: nats
+  #     namespace: agentforge-staging
+  #   path: patches/nats-svc-monitoring.jsonpatch.yaml
+  # - target:
+  #     group: apps
+  #     version: v1
+  #     kind: Deployment
+  #     name: nats
+  #     namespace: agentforge-staging
+  #   path: patches/nats-deploy-monitoring.jsonpatch.yaml
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: tool-executor
+      namespace: agentforge-staging
+    path: patches/tool-executor-security.jsonpatch.yaml
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: orchestrator
+      namespace: agentforge-staging
+    path: patches/orchestrator-security.jsonpatch.yaml
+  - target:
+      group: batch
+      version: v1
+      kind: CronJob
+      name: pg-maintenance
+      namespace: agentforge-staging
+    path: patches/pg-maintenance-security.jsonpatch.yaml

@@ -1,0 +1,86 @@
+# filepath: k8s/staging/results-sink-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: results-sink
+  namespace: agentforge-staging
+  labels:
+    app: results-sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: results-sink
+  template:
+    metadata:
+      labels:
+        app: results-sink
+    spec:
+      serviceAccountName: tool-executor-sa
+      securityContext:
+        runAsUser: 1000
+      volumes:
+        - name: var-dir
+          emptyDir: {}
+      containers:
+        - name: results-sink
+          image: agentforge:latest
+            # Worker executes results sink
+          command: ["python","-m","swarm.workers.results_sink"]
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+            - secretRef:
+                name: agentforge-secrets
+            - secretRef:
+                name: db-secrets
+                optional: true
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: METRICS_PORT
+              value: "9002"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.agentforge-staging.svc.cluster.local:4318"
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: agentforge-config
+                  key: ENV
+          ports:
+            - name: metrics
+              containerPort: 9002
+          volumeMounts:
+            - name: var-dir
+              mountPath: /app/var
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: results-sink
+  namespace: agentforge-staging
+  labels:
+    app: results-sink
+spec:
+  selector:
+    app: results-sink
+  ports:
+    - name: metrics
+      port: 9002
+      targetPort: 9002
+# Removed inline ServiceMonitor (moved to servicemonitors.yaml)

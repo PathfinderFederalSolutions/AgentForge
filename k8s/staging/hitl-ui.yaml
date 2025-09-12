@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hitl-ui
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hitl-ui
+  template:
+    metadata:
+      labels:
+        app: hitl-ui
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: hitl-ui
+          env:
+            - name: HOME
+              value: /tmp
+          image: agentforge:latest
+          command: ["python","-m","uvicorn","services.hitl.app:app","--host","0.0.0.0","--port","8080"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: data
+              mountPath: /app/var
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hitl-ui
+  namespace: agentforge-staging
+spec:
+  selector:
+    app: hitl-ui
+  ports:
+    - port: 8080
+      targetPort: 8080

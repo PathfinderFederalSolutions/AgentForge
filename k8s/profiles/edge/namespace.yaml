@@ -1,0 +1,9 @@
+# filepath: /Users/baileymahoney/AgentForge/k8s/profiles/edge/namespace.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-edge
+  labels:
+    app.kubernetes.io/part-of: agentforge
+    profile: edge

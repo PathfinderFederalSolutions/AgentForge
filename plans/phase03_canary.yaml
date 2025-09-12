@@ -1,0 +1,63 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase03_canary
+title: SLO-Driven Canary Promotion/Demotion + Model Tier Fallback
+objective: Automate route weights and tier fallback based on burn-rate, drift, and latency.
+preconditions:
+  - description: Prometheus adapter installed; rules for slo_backlog_drain_p95 exist.
+inputs:
+  - path: swarm/router_policy_loader.py
+  - path: config/router_policies.json
+  - path: k8s/monitoring/prometheus-adapter.yaml
+outputs:
+  - path: services/orchestrator/app/router_controller.py
+code_changes:
+  - path: services/orchestrator/app/router_controller.py
+    action: create
+    description: Polls Prometheus for multi-window burn rates + drift_psi/kl; updates NATS consumer filters/weights; emits decision events.
+    acceptance_criteria:
+      - Breach triggers downgrade within T=60s; evidence logs record reason & metrics.
+  - path: config/router_policies.json
+    action: update
+    description: Add thresholds: burn_rate_fast/slow, max_backlog, drift_limits, demote_cooldown_s, promote_min_window.
+    acceptance_criteria:
+      - Policy validated on boot; bad policy blocks start with explicit error.
+k8s_changes:
+  - path: k8s/staging/servicemonitors.yaml
+    action: update
+    description: Monitor router_controller /metrics.
+metrics:
+  - name: router_decisions_total
+    type: counter
+    producer: services/orchestrator/app/router_controller.py
+    prom_rule: excessive_flapping
+  - name: route_weight_current
+    type: gauge
+    producer: services/orchestrator/app/router_controller.py
+    prom_rule: none
+security_compliance:
+  fedramp_mapping:
+    - control: AU-12
+      note: Immutable audit of routing decisions (Cosign attestations).
+  cmmc_mapping:
+    - practice: AU.L2-3.3.1
+      note: Full, time-synced logs for decisions.
+tests:
+  unit:
+    - path: tests/test_canary_policy.py
+      description: Promotion/demotion logic with synthetic metrics.
+  integration:
+    - path: tests/test_e2e_policy.py
+      description: End-to-end demotion on induced latency, evidence updated.
+runbooks:
+  - path: runbooks/canary/promotion_workflow.md
+    description: Update with automated paths, manual override.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Add policy JSON schema validation + Cosign attest on policy artifact.
+evidence:
+  bundle_extensions:
+    - key: routing_decision
+      from_path: services/orchestrator/logs/router_decisions/*.jsonl
+      description: Include metrics snapshot + before/after weights.

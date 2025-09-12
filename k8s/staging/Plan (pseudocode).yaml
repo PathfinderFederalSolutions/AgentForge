@@ -1,0 +1,64 @@
+Plan (pseudocode)
+- Create a KUTTL multi-document test file at k8s/staging/test_keda-nats-worker.yaml
+- Step 1 (apply): kubectl apply the ScaledObject manifest to ensure it exists
+- Step 2 (assert): assert the ScaledObject fields using subset matching:
+  - apiVersion: keda.sh/v1alpha1, kind: ScaledObject
+  - metadata: name nats-worker-scaledobject, namespace agentforge-staging
+  - spec.scaleTargetRef: apps/v1 Deployment nats-worker
+  - spec.cooldownPeriod 60, pollingInterval 15, minReplicaCount 0, maxReplicaCount 5
+  - spec.advanced.horizontalPodAutoscalerConfig.behavior scaleUp/scaleDown windows and policies
+  - spec.triggers[0]: type nats-jetstream; metadata fields (endpoint, accountName "$G", streamName swarm_jobs, consumerName worker-staging, lag thresholds, metricName)
+- Do not delete resources; tests are read-only/assert-only
+- Note: Run with kuttl; it will pass if the live resource matches these fields
+
+Yaml
+language: yaml
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl apply -f k8s/staging/keda-nats-worker.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+assert:
+  - apiVersion: keda.sh/v1alpha1
+    kind: ScaledObject
+    metadata:
+      name: nats-worker-scaledobject
+      namespace: agentforge-staging
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: nats-worker
+      cooldownPeriod: 60
+      pollingInterval: 15
+      minReplicaCount: 0
+      maxReplicaCount: 5
+      advanced:
+        horizontalPodAutoscalerConfig:
+          behavior:
+            scaleUp:
+              stabilizationWindowSeconds: 30
+              policies:
+                - type: Percent
+                  value: 200
+                  periodSeconds: 15
+            scaleDown:
+              stabilizationWindowSeconds: 60
+              policies:
+                - type: Percent
+                  value: 100
+                  periodSeconds: 60
+      triggers:
+        - type: nats-jetstream
+          metadata:
+            natsServerMonitoringEndpoint: http://nats.agentforge-staging.svc.cluster.local:8222
+            accountName: "$G"
+            streamName: swarm_jobs
+            consumerName: worker-staging
+            lagThreshold: "1"
+            activationLagThreshold: "0"
+            metricName: s0-nats-jetstream-swarm_jobs
+
+Note: If Codacy MCP tools are enabled in VS Code, run codacy_cli_analyze on k8s/staging/test_keda-nats-worker.yaml after adding it. If MCP isn’t available, review Copilot > MCP settings or contact Codacy support.

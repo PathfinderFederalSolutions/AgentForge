@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: syncdaemon
+  namespace: agentforge-edge
+  labels:
+    app: syncdaemon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: syncdaemon
+  template:
+    metadata:
+      labels:
+        app: syncdaemon
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/syncdaemon: >-
+          runtime/default
+    spec:
+      serviceAccountName: agentforge
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: syncdaemon
+          image: agentforge/syncdaemon:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: SYNC_QUEUE_DIR
+              value: /agentforge/replay
+            - name: SYNC_LEDGER_DIR
+              value: /app/services/syncdaemon/logs
+            - name: SYNC_MAX_INFLIGHT
+              value: "64"
+            - name: SYNC_SUBJECT
+              value: swarm.results.edge
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: replay
+              mountPath: /agentforge/replay
+            - name: logs
+              mountPath: /app/services/syncdaemon/logs
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: replay
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}

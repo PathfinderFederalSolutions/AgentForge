@@ -1,0 +1,2 @@
+NAME       READY   AGE    CONTAINERS   IMAGES
+pgvector   0/1     6d7h   postgres     ankane/pgvector:pg16

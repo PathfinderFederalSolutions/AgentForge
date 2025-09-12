@@ -1,0 +1,8 @@
+# JSON6902 patch: expose 8222 on Service
+- op: add
+  path: /spec/ports/-
+  value:
+    name: monitoring
+    port: 8222
+    targetPort: 8222
+    protocol: TCP

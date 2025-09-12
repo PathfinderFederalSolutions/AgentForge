@@ -1,16 +1,21 @@
 from __future__ import annotations
 import os
-import io
 import uuid
 import shutil
 import hashlib
-from typing import BinaryIO, Dict, Optional, Tuple
+from typing import BinaryIO, Dict, Optional, Tuple, Any, List
 from urllib.parse import urlparse
 
 from minio import Minio
 from minio.error import S3Error
 
 from swarm.config import settings
+
+# Optional PGVector store for track state embeddings (best-effort)
+try:  # pragma: no cover
+    from swarm.memory.pgvector_store import PGVectorStore  # type: ignore
+except Exception:  # pragma: no cover
+    PGVectorStore = None  # type: ignore
 
 class ArtifactStore:
     def __init__(self) -> None:
@@ -122,3 +127,103 @@ class ArtifactStore:
             return None
 
 store = ArtifactStore()
+
+# --- Fused Track Persistence -------------------------------------------------
+# Lightweight local JSON persistence (future: Postgres + PostGIS table). For now we
+# keep minimal schema: track_id, state, covariance, confidence, evidence, created_at.
+import json
+import datetime as _dt
+
+_FUSED_TRACK_DIR = os.path.join("var", "fused_tracks")
+os.makedirs(_FUSED_TRACK_DIR, exist_ok=True)
+
+# In-memory index for tests (track_id -> path)
+_fused_index: Dict[str, str] = {}
+
+# Optional singleton pgvector store (lazy)
+_pgvector_store: Optional[PGVectorStore] = None
+
+def _get_pgvector_store() -> Optional[PGVectorStore]:  # pragma: no cover - best effort
+    global _pgvector_store
+    if _pgvector_store is not None:
+        return _pgvector_store
+    if PGVectorStore is None:
+        return None
+    try:
+        _pgvector_store = PGVectorStore(migrate=False)
+    except Exception:
+        _pgvector_store = None
+    return _pgvector_store
+
+def _embed_track(state: Dict[str, Any]) -> Optional[List[float]]:  # pragma: no cover
+    store_impl = _get_pgvector_store()
+    if not store_impl:
+        return None
+    try:
+        # Represent state as text for embedding provider
+        text = json.dumps(state, sort_keys=True)
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # In tests runtime may be sync; run threadpool blocking call
+            emb = loop.run_until_complete(store_impl.provider.embed([text]))  # type: ignore
+        else:
+            emb = asyncio.run(store_impl.provider.embed([text]))
+        return emb[0] if emb else None
+    except Exception:
+        return None
+
+def persist_fused_track(
+    state: Dict[str, Any],
+    covariance: List[List[float]],
+    confidence: float,
+    evidence: List[Dict[str, Any]],
+    track_id: Optional[str] = None,
+) -> str:
+    track_id = track_id or uuid.uuid4().hex
+    payload = {
+        "track_id": track_id,
+        "state": state,
+        "covariance": covariance,
+        "confidence": confidence,
+        "evidence": evidence,
+        "created_at": _dt.datetime.utcnow().isoformat() + "Z",
+    }
+    path = os.path.join(_FUSED_TRACK_DIR, f"{track_id}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"), sort_keys=True)
+    _fused_index[track_id] = path
+
+    # Best-effort embedding indexing
+    emb = _embed_track(state)
+    if emb is not None:
+        try:
+            store_impl = _get_pgvector_store()
+            if store_impl:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                docs = [("track", json.dumps(state, sort_keys=True), {"track_id": track_id})]
+                if loop.is_running():
+                    loop.run_until_complete(store_impl.upsert_batch("tracks", docs))  # type: ignore
+                else:
+                    asyncio.run(store_impl.upsert_batch("tracks", docs))
+        except Exception:
+            pass
+    return track_id
+
+def load_fused_track(track_id: str) -> Optional[Dict[str, Any]]:
+    path = _fused_index.get(track_id) or os.path.join(_FUSED_TRACK_DIR, f"{track_id}.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+__all__ = [
+    'ArtifactStore',
+    'store',
+    'persist_fused_track',
+    'load_fused_track'
+]

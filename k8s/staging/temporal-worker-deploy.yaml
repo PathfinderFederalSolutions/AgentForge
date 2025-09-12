@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-worker
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temporal-worker
+  template:
+    metadata:
+      labels:
+        app: temporal-worker
+    spec:
+      initContainers:
+        - name: wait-temporal
+          image: busybox:1.36
+          command: ["sh","-c","until nc -z temporalite 7233; do echo waiting for temporal...; sleep 2; done"]
+      containers:
+        - name: worker
+          image: agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-c","import asyncio; from swarm.workers.temporal_workflows import run_worker; asyncio.run(run_worker())"]
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          volumeMounts:
+            - name: app-var
+              mountPath: /app/var
+          livenessProbe:
+            exec:
+              command: ["sh","-c","echo ok"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["sh","-c","echo ready"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "4"
+              memory: "4Gi"
+      volumes:
+        - name: app-var
+          persistentVolumeClaim:
+            claimName: app-var-pvc

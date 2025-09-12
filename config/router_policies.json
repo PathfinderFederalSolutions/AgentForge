@@ -1,0 +1,19 @@
+[
+  {
+    "name": "sensitive_confidential_local",
+    "task_regex": "(?i)confidential|secret|internal|pii|personally identifiable",
+    "sensitive_local_only": true,
+    "allowed_providers": ["mock"],
+    "max_cost_usd": 5.0,
+    "max_latency_ms": 30000,
+    "priority": 100
+  },
+  {
+    "name": "default_low_cost_guardrail",
+    "task_regex": ".*",
+    "max_cost_usd": 25.0,
+    "max_latency_ms": 60000,
+    "sensitive_local_only": false,
+    "priority": 0
+  }
+]

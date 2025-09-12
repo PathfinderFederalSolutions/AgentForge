@@ -1,85 +1,165 @@
-# Shared configuration for SLAs and KPIs in AgentForge. All agents import this for access.
-# Orchestrator enforces via validation hooks.
+"""
+Central SLA / KPI configuration.
 
-SLAS_KPIS = {
-    'Memory Mesh': [
-        {'capability_sub': 'Hot Memory Availability', 'sla': '99.999% uptime', 'kpi': 'Downtime incidents', 'measurement': 'Monitoring logs', 'threshold': '0 incidents per mission'},
-        {'capability_sub': 'Read/Write Latency', 'sla': 'p99 < 10ms', 'kpi': 'Average ops/sec', 'measurement': 'Prometheus metrics', 'threshold': '100% compliance'},
-        {'capability_sub': 'Data Provenance Integrity', 'sla': '100% tamper-evident', 'kpi': 'Audit delta matches', 'measurement': 'Vector clock checks', 'threshold': '100% match rate'},
-        {'capability_sub': 'Classification Conformance', 'sla': '100% per-record enforcement', 'kpi': 'Misclassification errors', 'measurement': 'Automated scans', 'threshold': '0 errors'},
-        # Add iterated additions: Provenance chain completeness, Time-travel replay accuracy, etc.
-        {'capability_sub': 'Provenance Chain Completeness', 'sla': '100% linked to sources', 'kpi': 'Link checks', 'measurement': 'Audit scans', 'threshold': '100% completeness'},
-        {'capability_sub': 'Time-Travel Replay Accuracy', 'sla': '100% deterministic', 'kpi': 'Reproduction matches', 'measurement': 'Replay tests', 'threshold': '100% match'},
-    ],
-    'Security and Governance': [
-        {'capability_sub': 'Access Control Enforcement', 'sla': '100% ABAC/MAC compliance', 'kpi': 'Breach incidents', 'measurement': 'SIEM logs', 'threshold': '0 breaches'},
-        {'capability_sub': 'Audit Log Integrity', 'sla': '100% tamper-evident', 'kpi': 'Log verification pass rate', 'measurement': 'Cryptographic hashes', 'threshold': '100% pass'},
-        {'capability_sub': 'PII Minimization', 'sla': '100% scrubbing/redaction', 'kpi': 'Residual PII detections', 'measurement': 'Automated DLP scans', 'threshold': '0 detections'},
-        {'capability_sub': 'Compliance Mapping', 'sla': '100% RMF/NIST controls', 'kpi': 'Audit findings', 'measurement': 'Continuous monitoring', 'threshold': '0 findings per cycle'},
-        # Iterated: CDS pathway latency
-        {'capability_sub': 'CDS Pathway Latency', 'sla': '<100ms', 'kpi': 'Flow conformance', 'measurement': 'Latency logs', 'threshold': '100% conformance'},
-    ],
-    'Scalability and Performance': [
-        {'capability_sub': 'System Availability', 'sla': '99.99%', 'kpi': 'Uptime percentage', 'measurement': 'HA/DR tests', 'threshold': '100% during missions'},
-        {'capability_sub': 'Hypothesis Throughput', 'sla': '1M+/sec sustained', 'kpi': 'Processed/sec', 'measurement': 'Ray/K8s metrics', 'threshold': 'No throttling events'},
-        {'capability_sub': 'Ingest-to-Decision Latency', 'sla': 'p95 < 500ms', 'kpi': 'End-to-end time', 'measurement': 'Tracing (Jaeger)', 'threshold': '100% under threshold'},
-        {'capability_sub': 'Replay Determinism', 'sla': '100% identical outputs', 'kpi': 'Seed/snapshot matches', 'measurement': 'Regression runs', 'threshold': '100% match'},
-        # Iterated: Resource utilization
-        {'capability_sub': 'Resource Utilization', 'sla': '<80% peak', 'kpi': 'Utilization levels', 'measurement': 'Kubernetes autoscaler logs', 'threshold': 'No overages'},
-    ],
-    'Probabilistic Rigor': [
-        {'capability_sub': 'Calibration Error', 'sla': 'Brier/NLL/ACE < 0.01', 'kpi': 'Score per batch', 'measurement': 'Continuous monitoring', 'threshold': '0 deviations'},
-        {'capability_sub': 'Coverage Guarantee', 'sla': '95% conformal', 'kpi': 'Abstention rate', 'measurement': 'Validation sets', 'threshold': '<5% abstentions'},
-        {'capability_sub': 'Fusion Accuracy', 'sla': 'JPDA/MHT FPR@TPR < 0.001', 'kpi': 'ROC/DET curves', 'measurement': 'Simulated scenarios', 'threshold': '100% target hit'},
-        {'capability_sub': 'Uncertainty Propagation', 'sla': '100% tracked', 'kpi': 'Variance checks', 'measurement': 'Propagation audits', 'threshold': '0 untracked vars'},
-        # Iterated: Adversarial robustness
-        {'capability_sub': 'Adversarial Robustness', 'sla': '<1% drop under spoofing', 'kpi': 'Performance delta', 'measurement': 'Chaos tests', 'threshold': '<1% drop'},
-    ],
-    'Dynamic Agent Lifecycle': [
-        {'capability_sub': 'Spawn Latency', 'sla': '<100ms', 'kpi': 'Average time', 'measurement': 'Factory logs', 'threshold': '100% under'},
-        {'capability_sub': 'Context Inheritance', 'sla': '100% accurate', 'kpi': 'Validation checks', 'measurement': 'Clock/ACL matches', 'threshold': '0 errors'},
-        {'capability_sub': 'Task Idempotency', 'sla': '100% re-entrant', 'kpi': 'Retry success', 'measurement': 'Replay tests', 'threshold': '100%'},
-        {'capability_sub': 'Autoscaling Efficiency', 'sla': 'Quota adherence 100%', 'kpi': 'Scaling events', 'measurement': 'K8s metrics', 'threshold': 'No violations'},
-        # Iterated: Work stealing
-        {'capability_sub': 'Work Stealing', 'sla': 'Backlog drain <1min', 'kpi': 'Drain time', 'measurement': 'Queue metrics', 'threshold': '<1min'},
-    ],
-    'Self-Healing Loop': [
-        {'capability_sub': 'Violation Detection', 'sla': 'Latency <1s', 'kpi': 'Response time', 'measurement': 'Critic alerts', 'threshold': '100% timely'},
-        {'capability_sub': 'Auto-Fix Success', 'sla': '99.9%', 'kpi': 'Resolution rate', 'measurement': 'Healer logs', 'threshold': '0 unresolved'},
-        {'capability_sub': 'Regression Prevention', 'sla': '100% best-known-good', 'kpi': 'Canary pass rate', 'measurement': 'A/B tests', 'threshold': '100%'},
-        {'capability_sub': 'Contradiction Resolution', 'sla': '100%', 'kpi': 'Check pass rate', 'measurement': 'Policy rules', 'threshold': '0 open issues'},
-        # Iterated: Hardening against shifts
-        {'capability_sub': 'Drift Hardening', 'sla': '<5% impact post-healing', 'kpi': 'Drift delta', 'measurement': 'Post-heal tests', 'threshold': '<5%'},
-    ],
-    'Human-in-the-Loop': [
-        {'capability_sub': 'Gate Compliance', 'sla': '100% for thresholds', 'kpi': 'Invocation rate', 'measurement': 'Policy logs', 'threshold': '0 misses'},
-        {'capability_sub': 'Evidence Bundle Quality', 'sla': '100% complete', 'kpi': 'Review scores', 'measurement': 'HITL feedback', 'threshold': '100% acceptance'},
-        {'capability_sub': 'Feedback Integration', 'sla': '100% write-back', 'kpi': 'Update success', 'measurement': 'Mesh deltas', 'threshold': '0 failures'},
-        {'capability_sub': 'Autonomy Rate', 'sla': '>95% when KPIs met', 'kpi': 'Auto-commit percentage', 'measurement': 'Mission stats', 'threshold': 'Maximize w/o errors'},
-        # Iterated: Counterfactual inclusion
-        {'capability_sub': 'Counterfactual Inclusion', 'sla': '100% for high-impact', 'kpi': 'Bundle checks', 'measurement': 'Audit', 'threshold': '100%'},
-    ],
-    'Synchronization and Visibility': [
-        {'capability_sub': 'Propagation Latency', 'sla': '<50ms', 'kpi': 'Pub/sub time', 'measurement': 'Event logs', 'threshold': '100% under'},
-        {'capability_sub': 'Consistency Guarantee', 'sla': '100% causal', 'kpi': 'Clock violations', 'measurement': 'Vector checks', 'threshold': '0 violations'},
-        {'capability_sub': 'Visibility Coverage', 'sla': '100% assertions visible', 'kpi': 'Subscription tests', 'measurement': 'Agent polls', 'threshold': 'Full coverage'},
-        {'capability_sub': 'Conflict Resolution', 'sla': '100% automated', 'kpi': 'Resolution rate', 'measurement': 'CRDT ops', 'threshold': '0 manual interventions'},
-        # Iterated: Multi-mission isolation
-        {'capability_sub': 'Multi-Mission Isolation', 'sla': '0% cross-scope leaks', 'kpi': 'Leak detections', 'measurement': 'Scope audits', 'threshold': '0 leaks'},
-    ],
-    'Hypothesis Parallelism': [
-        {'capability_sub': 'Parallel Throughput', 'sla': '1M+/batch', 'kpi': 'Processed/batch', 'measurement': 'Ray metrics', 'threshold': 'No bottlenecks'},
-        {'capability_sub': 'Scoring Accuracy', 'sla': '>99% posterior', 'kpi': 'Validation error', 'measurement': 'Ground truth sims', 'threshold': '<1% error'},
-        {'capability_sub': 'Pruning Efficiency', 'sla': 'Utility threshold met 100%', 'kpi': 'Beam search yield', 'measurement': 'Prune logs', 'threshold': 'Optimal retention'},
-        {'capability_sub': 'Branch Management', 'sla': '100% merge/split', 'kpi': 'Operation success', 'measurement': 'Graph audits', 'threshold': '0 orphans'},
-        # Iterated: Hypothesis diversity
-        {'capability_sub': 'Hypothesis Diversity', 'sla': 'Index >0.9', 'kpi': 'Diversity score', 'measurement': 'Index calc', 'threshold': '>0.9'},
-    ],
+All services (planner, router, workers, API) must import from here only.
+No hard‑coded numeric thresholds elsewhere.
+
+Supports environment overrides so ops can tune without code edits.
+"""
+
+from __future__ import annotations
+import os
+from dataclasses import dataclass
+from typing import Dict, List
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, "").strip() or default)
+    except ValueError:
+        return default
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, "").strip() or default)
+    except ValueError:
+        return default
+
+@dataclass(frozen=True)
+class LatencySLO:
+    name: str
+    p95_ms: int
+    max_cap_ms: int
+    description: str
+
+@dataclass(frozen=True)
+class BacklogSLO:
+    name: str
+    warning_threshold: int
+    critical_threshold: int
+    sustained_minutes_for_warning: int
+    sustained_minutes_for_critical: int
+    description: str
+
+@dataclass(frozen=True)
+class DrainSLO:
+    name: str
+    p95_seconds: int
+    hard_cap_seconds: int
+    description: str
+
+@dataclass(frozen=True)
+class ErrorBudgetPolicy:
+    slo_name: str
+    period_days: int
+    target_availability: float  # e.g. 0.995
+    fast_window: str            # Prometheus range (e.g. 5m)
+    slow_window: str            # Prometheus range (e.g. 1h)
+
+@dataclass(frozen=True)
+class TaskLatencyBudget:
+    name: str
+    p50_ms: int
+    p90_ms: int
+    p95_ms: int
+    p99_ms: int
+    hard_cap_ms: int
+    description: str
+
+# --- Definitions (with env overrides) ---
+
+LATENCY_SLOS: Dict[str, LatencySLO] = {
+    "job_dispatch": LatencySLO(
+        name="job_dispatch",
+        p95_ms=_env_int("SLO_JOB_DISPATCH_P95_MS", 600_000),          # 600s
+        max_cap_ms=_env_int("SLO_JOB_DISPATCH_CAP_MS", 1_200_000),    # 1200s
+        description="Time from job enqueue to first worker start."
+    ),
 }
 
-def get_sla_kpi(capability, sub_capability):
-    """Retrieve specific SLA/KPI by capability and sub."""
-    for item in SLAS_KPIS.get(capability, []):
-        if item['capability_sub'] == sub_capability:
-            return item
-    return None
+BACKLOG_SLOS: Dict[str, BacklogSLO] = {
+    "jetstream_consumer": BacklogSLO(
+        name="jetstream_consumer",
+        warning_threshold=_env_int("SLO_BACKLOG_WARN", 3000),
+        critical_threshold=_env_int("SLO_BACKLOG_CRIT", 6000),
+        sustained_minutes_for_warning=_env_int("SLO_BACKLOG_WARN_MINUTES", 10),
+        sustained_minutes_for_critical=_env_int("SLO_BACKLOG_CRIT_MINUTES", 10),
+        description="Pending messages across critical consumers."
+    )
+}
+
+DRAIN_SLOS: Dict[str, DrainSLO] = {
+    "backlog_drain": DrainSLO(
+        name="backlog_drain",
+        p95_seconds=_env_int("SLO_DRAIN_P95_SECONDS", 600),
+        hard_cap_seconds=_env_int("SLO_DRAIN_CAP_SECONDS", 1_200),
+        description="Time to drain backlog after scaling workers back up."
+    )
+}
+
+ERROR_BUDGET_POLICIES: List[ErrorBudgetPolicy] = [
+    ErrorBudgetPolicy(
+        slo_name="backlog_drain",
+        period_days=_env_int("ERR_BUDGET_PERIOD_DAYS", 30),
+        target_availability=_env_float("ERR_BUDGET_TARGET", 0.995),
+        fast_window=os.getenv("ERR_BUDGET_FAST_WINDOW", "5m"),
+        slow_window=os.getenv("ERR_BUDGET_SLOW_WINDOW", "1h"),
+    )
+]
+
+# Task type latency budgets (higher cardinality per task avoided; this is per task class)
+# Environment variable naming convention:
+#   TASK_<UPPER_NAME>_P50_MS, TASK_<UPPER_NAME>_P90_MS, etc.
+# A generic "default" budget is always present.
+_TASK_DEFAULT_PREFIX = "TASK_DEFAULT_"
+TASK_LATENCY_BUDGETS: Dict[str, TaskLatencyBudget] = {
+    "default": TaskLatencyBudget(
+        name="default",
+        p50_ms=_env_int(f"{_TASK_DEFAULT_PREFIX}P50_MS", 1_000),
+        p90_ms=_env_int(f"{_TASK_DEFAULT_PREFIX}P90_MS", 5_000),
+        p95_ms=_env_int(f"{_TASK_DEFAULT_PREFIX}P95_MS", 10_000),
+        p99_ms=_env_int(f"{_TASK_DEFAULT_PREFIX}P99_MS", 30_000),
+        hard_cap_ms=_env_int(f"{_TASK_DEFAULT_PREFIX}CAP_MS", 120_000),
+        description="Generic task end-to-end latency expectations"
+    )
+}
+
+# Prometheus metric names (single source)
+METRIC_NAMES = {
+    "jetstream_backlog": "sum(nats_jetstream_consumer_num_pending)",
+    "backlog_drain_histogram": "backlog_drain_seconds_bucket",
+    "connections": "nats_varz_connections",
+    "slo_violation_counter": "slo_violation_events_total",
+}
+
+def get_latency_slo(name: str) -> LatencySLO:
+    return LATENCY_SLOS[name]
+
+def get_backlog_slo(name: str) -> BacklogSLO:
+    return BACKLOG_SLOS[name]
+
+def get_drain_slo(name: str) -> DrainSLO:
+    return DRAIN_SLOS[name]
+
+def get_task_budget(task_type: str) -> TaskLatencyBudget:
+    """Return latency budget for a logical task type (case-insensitive).
+    Falls back to 'default' if not defined.
+    """
+    key = (task_type or "default").lower()
+    return TASK_LATENCY_BUDGETS.get(key, TASK_LATENCY_BUDGETS["default"])
+
+def list_error_budget_policies() -> List[ErrorBudgetPolicy]:
+    return ERROR_BUDGET_POLICIES[:]
+
+def export_summary() -> Dict[str, Dict]:
+    return {
+        "latency_slos": {k: vars(v) for k, v in LATENCY_SLOS.items()},
+        "backlog_slos": {k: vars(v) for k, v in BACKLOG_SLOS.items()},
+        "drain_slos": {k: vars(v) for k, v in DRAIN_SLOS.items()},
+        "error_budget_policies": [vars(p) for p in ERROR_BUDGET_POLICIES],
+        "metric_names": METRIC_NAMES,
+        "task_latency_budgets": {k: vars(v) for k, v in TASK_LATENCY_BUDGETS.items()},
+    }
+
+if __name__ == "__main__":
+    import json
+    print(json.dumps(export_summary(), indent=2))

@@ -1,0 +1,10 @@
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS             IMAGES                                 SELECTOR
+hitl-ui                    0/1     1            0           5d10h   hitl-ui                agentforge:latest                      app=hitl-ui
+nats                       1/1     1            1           5d16h   nats                   nats:2.10-alpine                       app=nats
+nats-prometheus-exporter   1/1     1            1           21h     exporter               prometheus-nats-exporter:local         app=nats-prom-exporter
+nats-worker                1/1     1            1           5d17h   worker,hitl-consumer   agentforge:latest,agentforge:latest    app=nats-worker
+orchestrator               1/1     1            1           3d14h   orchestrator           agentforge:latest                      app=orchestrator
+otel-collector             1/1     1            1           3d13h   otelcol                otel/opentelemetry-collector:0.100.0   app=otel-collector
+temporal-worker            0/1     1            0           5d18h   worker                 agentforge:latest                      app=temporal-worker
+temporalite                1/1     1            1           5d16h   temporalite            temporalite-local:latest               app=temporalite
+tool-executor              1/1     1            1           3d14h   tool-executor          agentforge:latest                      app=tool-executor

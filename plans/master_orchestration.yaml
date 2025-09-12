@@ -1,0 +1,65 @@
+version: v1
+kind: PhasePipeline
+name: dod_capability_expansion
+entry_phase: phase01_edge
+phases:
+  - ref: phase01_edge
+    file: plans/phase01_edge.yaml
+    next: phase02_tactical_ui
+  - ref: phase02_tactical_ui
+    file: plans/phase02_tactical_ui.yaml
+    next: phase03_canary
+  - ref: phase03_canary
+    file: plans/phase03_canary.yaml
+    next: phase04_chaos
+  - ref: phase04_chaos
+    file: plans/phase04_chaos.yaml
+    next: phase05_comms
+  - ref: phase05_comms
+    file: plans/phase05_comms.yaml
+    next: phase06_ar_voice
+  - ref: phase06_ar_voice
+    file: plans/phase06_ar_voice.yaml
+    next: phase07_routes
+  - ref: phase07_routes
+    file: plans/phase07_routes.yaml
+    next: phase08_killchain
+  - ref: phase08_killchain
+    file: plans/phase08_killchain.yaml
+    next: phase09_cds
+  - ref: phase09_cds
+    file: plans/phase09_cds.yaml
+jobs:
+  render_phase:
+    worker: swarm/workers/tool_executor.py
+    subject: swarm.jobs.staging
+    payload_template: |
+      {"phase_file":"{{file}}","phase_id":"{{ref}}"}
+  apply_k8s:
+    worker: swarm/workers/tool_executor.py
+    subject: swarm.jobs.staging
+    payload_template: |
+      {"cmd":"kubectl apply -f {{k8s_dir}}","evidence_key":"k8s_apply_logs"}
+  run_tests:
+    worker: swarm/workers/tool_executor.py
+    subject: swarm.jobs.staging
+    payload_template: |
+      {"cmd":"pytest -q {{tests_glob}}","evidence_key":"pytest_results"}
+routing_policy:
+  on_phase_complete:
+    - job: render_phase
+    - job: apply_k8s
+      with:
+        k8s_dir: "k8s/staging"
+    - job: run_tests
+      with:
+        tests_glob: "tests/**/test_*"
+evidence:
+  attach:
+    - key: phase_spec
+      from: "plans/{{ref}}.yaml"
+    - key: ci_logs
+      from: "var/artifacts/ci/**"
+security:
+  require_attestation: true
+  cosign_policy: ".github/workflows/supply-chain.yml"

@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats-prometheus-exporter
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats-prom-exporter
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nats-prom-exporter
+      annotations:
+        redeploy-timestamp: "{{TS}}"
+    spec:
+      serviceAccountName: nats-prometheus-exporter
+      containers:
+        - name: exporter
+          # Using locally built image to bypass GHCR 403 issues. After validation, rebuild & pin digest from upstream.
+          image: prometheus-nats-exporter:local
+          imagePullPolicy: IfNotPresent
+          command: ["/prometheus-nats-exporter"]
+          # Required flags for JetStream + general server visibility. -subz added (persist patch). Optional others commented.
+          args:
+            - -varz
+            - -jsz=streams
+            - -jsz=consumers
+            - -jsz=accounts
+            - -accstatz
+            - -connz
+            - -routez
+            - -subz  # fixed (was -subsz causing crash: "flag provided but not defined: -subsz")
+            # - -gatewayz   # uncomment if you need gateway metrics
+            # - -leafz      # uncomment if you need leaf metrics
+            - http://nats.agentforge-staging.svc.cluster.local:8222
+          ports:
+            - name: metrics
+              containerPort: 7777
+          readinessProbe:
+            httpGet: { path: /metrics, port: 7777 }
+            initialDelaySeconds: 25
+            periodSeconds: 15
+            failureThreshold: 5
+          livenessProbe:
+            httpGet: { path: /metrics, port: 7777 }
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats-prometheus-exporter
+  namespace: agentforge-staging
+  labels:
+    app: nats-prom-exporter
+    release: kube-prom
+spec:
+  selector:
+    app: nats-prom-exporter
+  ports:
+    - name: metrics
+      port: 7777
+      targetPort: 7777
+      protocol: TCP

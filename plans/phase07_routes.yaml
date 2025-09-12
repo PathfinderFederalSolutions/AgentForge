@@ -1,0 +1,58 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase07_routes
+title: ISR-Fused Route Recommendations with Explanations
+objective: Generate primary/alternate routes using weighted threat grids; explain “why” with evidence.
+preconditions:
+  - description: GeoJSON events and map UI available.
+inputs:
+  - path: swarm/fusion/eo_ir.py
+  - path: swarm/fusion/bayesian.py
+  - path: ui/tactical-dashboard/
+outputs:
+  - path: services/route-engine/app/main.py
+  - path: ui/tactical-dashboard/src/layers/Routes.tsx
+code_changes:
+  - path: services/route-engine/app/main.py
+    action: create
+    description: A*/Dijkstra over grid costmap; costs updated from ISR detections; exposes /v1/routes?from=…&to=… with evidence refs and explanation.
+    acceptance_criteria:
+      - Route recomputes within 1s after new ISR layers; alternates provided with confidence.
+  - path: ui/tactical-dashboard/src/layers/Routes.tsx
+    action: create
+    description: Renders routes, hover for “why” (features & weights), click → evidence.
+k8s_changes:
+  - path: k8s/staging/tools-browser-deploy.yaml
+    action: update
+    description: Add route-engine Deployment/Service with netpol egress to ISR bus.
+metrics:
+  - name: route_compute_seconds
+    type: histogram
+    producer: services/route-engine/app/main.py
+    prom_rule: route_compute_slo_breach
+security_compliance:
+  fedramp_mapping:
+    - control: SI-10
+      note: Validate/clip geospatial inputs to AOI; sanitize properties.
+  cmmc_mapping:
+    - practice: SC.L2-3.13.5
+      note: Segmented network paths; deny non-AOI fetch.
+tests:
+  unit:
+    - path: tests/test_route_costmap.py
+      description: Cost fusion logic, bounds checking.
+  integration:
+    - path: tests/test_route_recompute_latency.py
+      description: ISR update causes recompute < 1s with correct alternates.
+runbooks:
+  - path: runbooks/latency/budgets.md
+    description: Add route compute budgets and tuning tips.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Add geospatial fuzz tests stage.
+evidence:
+  bundle_extensions:
+    - key: route_explanation
+      from_path: services/route-engine/logs/explanations/*.jsonl
+      description: Features & weights that led to chosen routes.

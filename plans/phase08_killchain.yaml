@@ -1,0 +1,57 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase08_killchain
+title: HITL Engagement Packet + Multi-Party Auth
+objective: Speed sensor→decision with human-in-the-loop approval, immutable provenance.
+preconditions:
+  - description: Evidence bundles stable; HITL UI operable.
+inputs:
+  - path: services/hitl/app.py
+  - path: swarm/enforcer.py
+  - path: swarm/provenance/signing.py
+outputs:
+  - path: services/engagement/app/main.py
+  - path: ui/tactical-dashboard/src/views/Engagement.tsx
+code_changes:
+  - path: services/engagement/app/main.py
+    action: create
+    description: Assemble target metadata, COA, ROE checks; require 2FA + dual approval; sign packet; push to HITL queue; on approve, emit authorized action event.
+    acceptance_criteria:
+      - Attempts without dual approval rejected; full audit trail recorded.
+  - path: services/hitl/app.py
+    action: update
+    description: New endpoints/UI for approve/deny with YubiKey/WebAuthn.
+k8s_changes:
+  - path: k8s/staging/servicemonitors.yaml
+    action: update
+    description: Monitor engagement service; scrape evidence counters.
+metrics:
+  - name: engagement_time_to_decision_seconds
+    type: histogram
+    producer: services/engagement/app/main.py
+    prom_rule: engagement_ttd_slo_breach
+security_compliance:
+  fedramp_mapping:
+    - control: IA-2, IA-5
+      note: MFA/HW tokens; credential lifecycle in CI secrets manager.
+    - control: AU-9
+      note: Immutable logs (WORM store or signed digests).
+  cmmc_mapping:
+    - practice: AC.L2-3.1.5
+      note: Separation of duties via dual approval.
+tests:
+  integration:
+    - path: tests/test_engagement_dual_control.py
+      description: No action without 2 approvals; evidence contains full chain.
+runbooks:
+  - path: runbooks/canary/promotion_workflow.md
+    description: Add engagement escalation pathways and rollback.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/supply-chain.yml
+      change: Sign engagement artifacts with Cosign; upload SBOM (Syft).
+evidence:
+  bundle_extensions:
+    - key: engagement_packet
+      from_path: var/artifacts/engagement/**/*
+      description: The signed packet + approvals + ROE snapshot.

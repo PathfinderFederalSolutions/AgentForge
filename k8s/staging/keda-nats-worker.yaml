@@ -1,0 +1,46 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: nats-worker-scaledobject
+  namespace: agentforge-staging
+  annotations:
+    autoscaling.keda.sh/paused: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nats-worker
+  pollingInterval: 5
+  cooldownPeriod: 180
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 30
+          policies:
+            - type: Percent
+              value: 200
+              periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 90
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 60
+  triggers:
+    - type: nats-jetstream
+      metadata:
+        natsServerMonitoringEndpoint: nats.agentforge-staging.svc.cluster.local:8222
+        # New & legacy field names for compatibility across KEDA versions
+        account: "$G"
+        accountName: "$G"
+        stream: swarm_jobs
+        streamName: swarm_jobs
+        consumer: worker-staging
+        consumerName: worker-staging
+        lagThreshold: "10"
+        activationLagThreshold: "1"
+        useHttps: "false"
+        metricName: s0-nats-jetstream-swarm_jobs

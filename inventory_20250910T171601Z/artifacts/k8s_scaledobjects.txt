@@ -1,0 +1,2 @@
+NAME                       SCALETARGETKIND      SCALETARGETNAME   MIN   MAX   TRIGGERS         AUTHENTICATION   READY   ACTIVE    FALLBACK   PAUSED   AGE
+nats-worker-scaledobject   apps/v1.Deployment   nats-worker       0     5     nats-jetstream                    True    Unknown   False      True     42h

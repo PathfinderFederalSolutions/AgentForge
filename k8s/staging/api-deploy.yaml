@@ -1,0 +1,75 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: agentforge-staging
+  labels:
+    app: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      serviceAccountName: orchestrator-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: api
+          image: agentforge:latest
+          command: ["python","-m","uvicorn","swarm.api.main:app","--host","0.0.0.0","--port","8000"]
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: HOME
+              value: "/tmp"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          ports:
+            - containerPort: 8000
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: agentforge-staging
+  labels:
+    app: api
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http

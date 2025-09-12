@@ -1,0 +1,11 @@
+{
+  "title": "API Overview",
+  "panels": [
+    {"type": "stat", "title": "Submits", "targets": [{"expr": "sum(increase(task_submit_total[5m]))"}]},
+    {"type": "stat", "title": "Submit Errors", "targets": [{"expr": "sum(increase(task_submit_errors_total[5m]))"}]},
+    {"type": "graph", "title": "Submit Latency p50/p95", "targets": [
+      {"expr": "histogram_quantile(0.5, sum(rate(task_submit_latency_seconds_bucket[5m])) by (le))"},
+      {"expr": "histogram_quantile(0.95, sum(rate(task_submit_latency_seconds_bucket[5m])) by (le))"}
+    ]}
+  ]
+}

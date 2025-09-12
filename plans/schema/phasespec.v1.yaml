@@ -1,0 +1,55 @@
+version: v1
+kind: PhaseSpec
+phase_id: string
+title: string
+objective: string
+preconditions:
+  - description: string
+inputs:
+  - path: string            # repo path(s) used/extended
+outputs:
+  - path: string            # files/directories produced
+code_changes:
+  - path: string
+    action: [create|update|delete]
+    description: string
+    acceptance_criteria:
+      - string
+k8s_changes:
+  - path: string
+    action: [create|update|delete]
+    description: string
+metrics:
+  - name: string
+    type: [counter|gauge|histogram]
+    producer: string        # module/file that emits
+    prom_rule: string       # rule name if alerting added
+security_compliance:
+  fedramp_mapping:
+    - control: string       # e.g., AC-3, SC-13, SI-4
+      note: string
+  cmmc_mapping:
+    - practice: string      # e.g., AC.L2-3.1.7
+      note: string
+tests:
+  unit:
+    - path: string
+      description: string
+  integration:
+    - path: string
+      description: string
+  chaos:
+    - path: string
+      description: string
+runbooks:
+  - path: string
+    description: string
+ci_pipeline:
+  github_actions:
+    - path: string
+      change: string
+evidence:
+  bundle_extensions:
+    - key: string
+      from_path: string
+      description: string

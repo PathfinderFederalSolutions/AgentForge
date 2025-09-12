@@ -1,0 +1,13 @@
+# JSON6902 patch: only touch container args/ports
+- op: add
+  path: /spec/template/spec/containers/0/args
+  value:
+    - "-js"
+    - "-m"
+    - "8222"
+- op: add
+  path: /spec/template/spec/containers/0/ports/-
+  value:
+    name: monitoring
+    containerPort: 8222
+    protocol: TCP

@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgvector-secret
+  namespace: agentforge-staging
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: agentforge
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgvector
+  namespace: agentforge-staging
+spec:
+  serviceName: pgvector
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgvector
+  template:
+    metadata:
+      labels:
+        app: pgvector
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: ankane/pgvector:pg16
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgvector-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: vector
+            - name: HOME
+              value: /tmp
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            tcpSocket: { port: 5432 }
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            # Postgres needs write access to its data dir; cannot be readOnly
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgvector
+  namespace: agentforge-staging
+spec:
+  selector:
+    app: pgvector
+  ports:
+    - port: 5432
+      targetPort: 5432

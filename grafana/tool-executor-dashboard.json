@@ -1,0 +1,21 @@
+{
+  "title": "Tool Executor Overview",
+  "panels": [
+    {"type": "stat", "title": "Attempts", "targets": [{"expr": "sum(increase(tool_executor_attempts_total[5m]))"}]},
+    {"type": "stat", "title": "Failures", "targets": [{"expr": "sum(increase(tool_executor_failures_total[5m]))"}]},
+    {"type": "graph", "title": "Latency p50/p95", "targets": [
+      {"expr": "histogram_quantile(0.5, sum(rate(tool_executor_latency_seconds_bucket[5m])) by (le))"},
+      {"expr": "histogram_quantile(0.95, sum(rate(tool_executor_latency_seconds_bucket[5m])) by (le))"}
+    ]},
+    {"type": "graph", "title": "Retries", "targets": [
+      {"expr": "sum(increase(tool_executor_retries_total[5m]))"},
+      {"expr": "sum(increase(executor_retry_total[5m]))"}
+    ]},
+    {"type": "graph", "title": "JS Backlog (worker-staging)", "targets": [{"expr": "jetstream_backlog"}]},
+    {"type": "graph", "title": "JS Ack Pending", "targets": [{"expr": "jetstream_ack_pending"}]},
+    {"type": "graph", "title": "JS Redelivery Rate", "targets": [{"expr": "jetstream_redelivery_rate"}]},
+    {"type": "graph", "title": "Backlog Drain Rate (msgs/sec)", "targets": [{"expr": "jetstream_backlog_drain_rate"}], "fieldConfig": {"defaults": {"unit": "msgs/s"}}},
+    {"type": "stat", "title": "Drain Estimate (minutes)", "targets": [{"expr": "jetstream_backlog_drain_estimate_minutes"}], "fieldConfig": {"defaults": {"unit": "m"}}},
+    {"type": "gauge", "title": "JS Backlog Gauge", "targets": [{"expr": "jetstream_backlog"}], "fieldConfig": {"defaults": {"unit": "msgs"}}}
+  ]
+}

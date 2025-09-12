@@ -1,0 +1,126 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: keda-alerts
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  groups:
+  - name: keda.rules
+    rules:
+    # Recording rules to simplify queries & future SLO calculations
+    - record: jetstream_backlog
+      expr: sum(nats_jetstream_consumer_num_pending{stream="swarm_jobs",consumer="worker-staging"})
+    - record: jetstream_ack_pending
+      expr: sum(nats_jetstream_consumer_num_ack_pending{stream="swarm_jobs",consumer="worker-staging"})
+    - record: jetstream_redelivery_rate
+      expr: sum(rate(nats_jetstream_consumer_num_redelivered{stream="swarm_jobs",consumer="worker-staging"}[5m]))
+    # backlog_drain_rate positive => backlog shrinking (deriv of backlog is negative while draining)
+    - record: jetstream_backlog_drain_rate
+      expr: -1 * deriv(jetstream_backlog[10m])
+    # Estimated minutes to drain current backlog given observed drain rate (guard against divide-by-zero)
+    - record: jetstream_backlog_drain_estimate_minutes
+      expr: (jetstream_backlog / clamp_min(jetstream_backlog_drain_rate,1)) / 60
+    # SLO supporting metrics
+    - record: jetstream_backlog_drain_estimate_minutes_p95_6h
+      expr: quantile_over_time(0.95, jetstream_backlog_drain_estimate_minutes[6h])
+    - record: jetstream_backlog_slo_violation
+      expr: jetstream_backlog_drain_estimate_minutes > 20
+    - record: jetstream_backlog_slo_violation_ratio_1h
+      expr: avg_over_time(jetstream_backlog_slo_violation[1h])
+    - record: jetstream_backlog_slo_violation_ratio_6h
+      expr: avg_over_time(jetstream_backlog_slo_violation[6h])
+    - record: jetstream_backlog_slo_violation_ratio_24h
+      expr: avg_over_time(jetstream_backlog_slo_violation[24h])
+    - alert: SustainedNATSBacklogWarning
+      annotations:
+        summary: NATS JetStream backlog sustained (warning)
+        description: Backlog >= 3000 messages for more than 10 minutes.
+        runbook: https://runbooks.internal/nats/backlog
+      expr: max_over_time(jetstream_backlog[5m]) >= 3000
+      for: 10m
+      labels:
+        severity: warning
+    - alert: SustainedNATSBacklogCritical
+      annotations:
+        summary: NATS JetStream backlog sustained (critical)
+        description: Backlog >= 4000 messages for more than 10 minutes (risk drain time > 10m SLO, may exceed 20m cap).
+        runbook: https://runbooks.internal/nats/backlog
+      expr: max_over_time(jetstream_backlog[5m]) >= 4000
+      for: 10m
+      labels:
+        severity: critical
+    - alert: NATSBacklogDrainSLOAtRisk
+      annotations:
+        summary: NATS backlog drain SLO at risk
+        description: Backlog large and estimated drain time > 20m cap. Investigate consumer performance or scale out.
+        runbook: https://runbooks.internal/nats/backlog
+      expr: jetstream_backlog >= 4000 and jetstream_backlog_drain_estimate_minutes > 20
+      for: 5m
+      labels:
+        severity: critical
+    - alert: NATSBacklogDrainSLOBurnFast
+      annotations:
+        summary: Backlog drain SLO fast burn detected
+        description: >-
+          >5% of the last 1h in violation of the 20m drain cap (jetstream_backlog_drain_estimate_minutes > 20). Rapid consumption of error budget.
+        runbook: https://runbooks.internal/nats/backlog
+      expr: jetstream_backlog_slo_violation_ratio_1h > 0.05
+      for: 15m
+      labels:
+        severity: critical
+    - alert: NATSBacklogDrainSLOBurnSlow
+      annotations:
+        summary: Backlog drain SLO slow burn
+        description: >-
+          >2% of the last 6h in violation; sustained risk to 24h error budget.
+        runbook: https://runbooks.internal/nats/backlog
+      expr: jetstream_backlog_slo_violation_ratio_6h > 0.02
+      for: 30m
+      labels:
+        severity: warning
+    - alert: KEDAScalerErrors
+      annotations:
+        summary: KEDA scaler reporting errors
+        runbook: https://runbooks.internal/keda/scaler-errors
+      expr: sum by(namespace)(rate(keda_metrics_adapter_scaler_errors[5m])) > 0
+      for: 10m
+      labels:
+        severity: warning
+    - alert: NATSExporterDown
+      annotations:
+        summary: NATS Prometheus exporter is down
+        description: No successful scrapes of the exporter target for 5 minutes.
+        runbook: https://runbooks.internal/nats/exporter
+      expr: up{namespace="agentforge-staging", service="nats-prometheus-exporter"} == 0
+      for: 5m
+      labels:
+        severity: critical
+    - alert: NATSConsumerAckPendingHigh
+      annotations:
+        summary: NATS JetStream consumer ack-pending is high
+        description: Ack pending > 1000 for 10m indicates slow processing; risk of breaching drain SLO.
+        runbook: https://runbooks.internal/nats/ack-pending
+      expr: max_over_time(jetstream_ack_pending[5m]) > 1000
+      for: 10m
+      labels:
+        severity: warning
+    - alert: NATSConsumerRedeliveriesRateHigh
+      annotations:
+        summary: NATS JetStream consumer redeliveries are high
+        description: Redelivery rate > 1 msg/sec (5m avg) for 10m suggests failures/timeouts.
+        runbook: https://runbooks.internal/nats/redeliveries
+      expr: jetstream_redelivery_rate > 1
+      for: 10m
+      labels:
+        severity: warning
+    - alert: NATSJetStreamMetricsMissing
+      annotations:
+        summary: Missing JetStream metrics from exporter
+        description: Prometheus has not seen jetstream_backlog for 10 minutes. Check exporter/ServiceMonitor/NetworkPolicies.
+        runbook: https://runbooks.internal/nats/exporter
+      expr: absent_over_time(jetstream_backlog[10m])
+      for: 0m
+      labels:
+        severity: warning

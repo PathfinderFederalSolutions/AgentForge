@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-integration
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgvector-secret
+  namespace: agentforge-integration
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: agentforge
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pgvector
+  namespace: agentforge-integration
+spec:
+  serviceName: pgvector
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgvector
+  template:
+    metadata:
+      labels:
+        app: pgvector
+    spec:
+      containers:
+        - name: postgres
+          image: ankane/pgvector:pg16
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgvector-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: vector
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            tcpSocket: { port: 5432 }
+            initialDelaySeconds: 3
+            periodSeconds: 3
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgvector
+  namespace: agentforge-integration
+spec:
+  selector:
+    app: pgvector
+  ports:
+    - port: 5432
+      targetPort: 5432

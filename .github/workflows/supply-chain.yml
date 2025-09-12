@@ -55,6 +55,17 @@ jobs:
         run: |
           docker build -f build/prometheus-nats-exporter/Dockerfile.secure -t exporter-secure:latest .
 
+      - name: Build syncdaemon image
+        run: |
+          if [ -f services/syncdaemon/Dockerfile ]; then
+            docker build -t "$IMAGE-syncdaemon" -f services/syncdaemon/Dockerfile .
+            if [ "${{ github.event.pull_request.head.repo.fork }}" = "false" ]; then
+              docker push "$IMAGE-syncdaemon" || true
+            fi
+          else
+            echo "syncdaemon Dockerfile not found; skipping"
+          fi
+
       - name: Generate SOURCE SBOM (SPDX JSON)
         run: syft dir:. -o spdx-json=sbom-source.spdx.json
 
@@ -86,6 +97,17 @@ jobs:
           echo "Attesting SBOM for $IMAGE";
           cosign attest --predicate sbom-image.spdx.json --type spdx "$IMAGE" || echo "Cosign attest failed (non-fatal)"
 
+      - name: Cosign attest syncdaemon image SBOM (keyless)
+        continue-on-error: true
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "Fork detected: skipping syncdaemon attestation push."; exit 0; fi
+          if ! docker manifest inspect "$IMAGE-syncdaemon" >/dev/null 2>&1; then
+            echo "Syncdaemon image not in registry - skip attestation"; exit 0; fi
+          cosign attest --predicate sbom-image.spdx.json --type spdx "$IMAGE-syncdaemon" || echo "Cosign attest failed (non-fatal)"
+
       - name: Cosign sign image (optional, non-fatal)
         if: github.event.pull_request.head.repo.fork == false
         continue-on-error: true
@@ -93,6 +115,47 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign --yes "$IMAGE" || echo "Cosign sign failed (non-fatal)"
+
+      - name: Upload Edge Sync Evidence Bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge_sync_manifest
+          path: |
+            services/syncdaemon/logs/*.jsonl
+          if-no-files-found: ignore
+
+      - name: Trivy FS scan (repo)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload FS scan SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      - name: Trivy Image scan (app image)
+        if: github.event.pull_request.head.repo.fork == false
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          format: 'sarif'
+          output: 'trivy-image.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Image scan SARIF to GitHub Security
+        if: github.event.pull_request.head.repo.fork == false
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
 
       - name: Summarize
         run: |

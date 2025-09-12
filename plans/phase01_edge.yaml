@@ -1,0 +1,87 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase01_edge
+title: Edge Deployment (k3s) + Store/Forward + Bandwidth Control
+objective: Package AgentForge for k3s/MicroK8s edge nodes; persist jobs offline; sync evidence on reconnect without SLO or integrity violations.
+preconditions:
+  - description: SCIF overlay exists under k8s/profiles/scif and staging cluster is healthy.
+inputs:
+  - path: k8s/profiles/scif
+  - path: k8s/staging/otel-collector.yaml
+  - path: swarm/jetstream.py
+  - path: inventory_*/artifacts/nats_jsz.json
+outputs:
+  - path: k8s/profiles/edge
+  - path: services/syncdaemon/app/main.py
+  - path: grafana/nats-slo-dashboard.json            # updated panels for edge
+code_changes:
+  - path: swarm/jetstream.py
+    action: update
+    description: Add file-backed JetStream stream config toggled by ENV (EDGE_MODE=true) and durable consumers with increased ack_wait.
+    acceptance_criteria:
+      - EDGE_MODE=true yields file storage in $JETSTREAM_PATH with replay on reconnect.
+      - Messages survive nats-server restart and k3s node reboot.
+  - path: services/orchestrator/app/nats_client.py
+    action: update
+    description: Backoff + jitter reconnect strategy; expose edge_link_status via /metrics.
+    acceptance_criteria:
+      - Prometheus scrape shows edge_link_status{site="<edge>"} ∈ {0,1}.
+  - path: services/syncdaemon/app/main.py
+    action: create
+    description: Python FastAPI/worker that detects WAN link, replays queued jobs/results/evidence to central NATS; SHA256 verify and idempotency keys.
+    acceptance_criteria:
+      - On reconnect, replay_queue_depth drains to 0; duplicates not created (idempotency respected).
+k8s_changes:
+  - path: k8s/profiles/edge/kustomization.yaml
+    action: create
+    description: New edge overlay cloned from scif with local PVs for nats data, restricted netpols, and syncdaemon Deployment/Service.
+  - path: k8s/profiles/edge/nats.yaml
+    action: create
+    description: nats with JetStream file store, podDisruptionBudget=1, runAsNonRoot.
+  - path: k8s/profiles/edge/servicemonitors.yaml
+    action: create
+    description: ServiceMonitors for syncdaemon and edge APIs.
+metrics:
+  - name: edge_link_status
+    type: gauge
+    producer: services/orchestrator/app/nats_client.py
+    prom_rule: edge_link_down_burn
+  - name: replay_queue_depth
+    type: gauge
+    producer: services/syncdaemon/app/main.py
+    prom_rule: edge_replay_stalled
+  - name: edge_bandwidth_bps
+    type: gauge
+    producer: services/syncdaemon/app/main.py
+    prom_rule: edge_bw_low
+security_compliance:
+  fedramp_mapping:
+    - control: SC-13
+      note: Use TLS1.2+, mTLS between edge and core; FIPS-validated crypto images in k8s/profiles/edge.
+    - control: SI-7
+      note: SHA256 verification of evidence on sync; Cosign attestations for syncdaemon.
+  cmmc_mapping:
+    - practice: SC.L2-3.13.8
+      note: Fail-safe defaults; deny egress except allowlisted core endpoints.
+tests:
+  unit:
+    - path: tests/test_edge_store_forward.py
+      description: Ensures file store retention and replay idempotency.
+  integration:
+    - path: tests/test_edge_disconnect_reconnect.py
+      description: Simulates WAN loss; asserts SLO backlog_drain_p95 remains within policy post-reconnect.
+  chaos:
+    - path: tests/chaos/test_edge_nats_restart.py
+      description: PUMAs nats restart; validates no evidence loss (hash matches).
+runbooks:
+  - path: runbooks/nats/backlog.md
+    description: Added edge replay procedures and verification steps.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/kind-e2e-scale-from-zero.yml
+      change: Add edge profile matrix job with k3s-in-docker (k3d) smoke test.
+evidence:
+  bundle_extensions:
+    - key: edge_sync_manifest
+      from_path: services/syncdaemon/logs/*.jsonl
+      description: Attach replay ledger + hash verification to /v1/evidence bundle.

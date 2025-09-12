@@ -1,0 +1,50 @@
+# filepath: k8s/staging/keda-results-sink.yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: results-sink-scaledobject
+  namespace: agentforge-staging
+  annotations:
+    # Set to "true" to pause scaling; default paused until validated
+    autoscaling.keda.sh/paused: "true"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: results-sink
+  pollingInterval: 5            # seconds between checks
+  cooldownPeriod: 120           # seconds to wait before scaling down
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 30
+          policies:
+            - type: Percent
+              value: 200
+              periodSeconds: 15
+        scaleDown:
+          stabilizationWindowSeconds: 90
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 60
+  triggers:
+    - type: nats-jetstream
+      metadata:
+        natsServerMonitoringEndpoint: nats.agentforge-staging.svc.cluster.local:8222
+        # Both legacy and canonical field names for KEDA compatibility
+        account: "$G"
+        accountName: "$G"
+        stream: SWARM_RESULTS
+        streamName: SWARM_RESULTS
+        consumer: results-staging
+        consumerName: results-staging
+        # Scale out when lag >= 50 messages
+        lagThreshold: "50"
+        # Avoid premature activation; start scaling at lag 5
+        activationLagThreshold: "5"
+        useHttps: "false"
+        metricName: s0-nats-jetstream-swarm_results

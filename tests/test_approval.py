@@ -1,7 +1,10 @@
-import os
 import pytest
 from approval import ApprovalManager
+from fastapi.testclient import TestClient
+from swarm.api.main import app
+from swarm import lineage
 
+client = TestClient(app)
 
 def test_disabled_returns_approved(monkeypatch):
     monkeypatch.setenv("AF_APPROVAL_ENABLE", "0")
@@ -31,3 +34,19 @@ def test_strict_blocks_without_autoapprove(monkeypatch):
     task = {"id": "t3", "description": "prod payment deploy", "metadata": {"impact": "critical"}}
     with pytest.raises(ValueError):
         mgr.check_and_gate(task, "Error: boom", "Memory Mesh")
+
+
+def test_evidence_bundle_endpoint(monkeypatch):
+    monkeypatch.setenv("AF_APPROVAL_ENABLE", "0")
+    # Start and complete a synthetic job to ensure lineage populated
+    job_id = lineage.start_job(goal="Test evidence bundle goal")
+    lineage.complete_job(job_id, {"approved": True, "metrics": {"confidence": 0.87}, "citations": ["ref1"]}, [{"capability": "x", "result": "ok"}])
+    resp = client.get(f"/v1/evidence/{job_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["job_id"] == job_id
+    assert data["confidence"] == 0.87
+    assert data["citations"] == ["ref1"]
+    assert isinstance(data["events"], list) and any(e["event_type"] == "job_completed" for e in data["events"])
+    # reproducibility info present
+    assert "reproducibility" in data and "dag_path_exists" in data["reproducibility"]

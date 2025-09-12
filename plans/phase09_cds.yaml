@@ -1,0 +1,51 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase09_cds
+title: Cross Domain Synchronization for Evidence (SIPR→NIPR)
+objective: Transfer labeled evidence bundles across domains via CDS with integrity verification.
+preconditions:
+  - description: Evidence bundles labeled; hashes generated; ATO/CDS path identified.
+inputs:
+  - path: services/orchestrator/app/main.py
+  - path: swarm/provenance/signing.py
+outputs:
+  - path: services/cds-bridge/app/main.py
+  - path: k8s/profiles/govcloud/cds-bridge.yaml
+code_changes:
+  - path: services/cds-bridge/app/main.py
+    action: create
+    description: Package evidence with security labels (S/M/L cats), send via CDS API (placeholder adapter), verify hashes on receive; emit cds_transfer_success metric.
+    acceptance_criteria:
+      - Hash verification mandatory; failures alert; retries with backoff.
+k8s_changes:
+  - path: k8s/profiles/govcloud/network-policies.yaml
+    action: update
+    description: Allow egress only to CDS endpoints; deny all else.
+metrics:
+  - name: cds_transfer_success_total
+    type: counter
+    producer: services/cds-bridge/app/main.py
+    prom_rule: cds_failure_rate_high
+security_compliance:
+  fedramp_mapping:
+    - control: MP-5, SC-16
+      note: Media protection and label preservation; banner marking in payload metadata.
+  cmmc_mapping:
+    - practice: MP.L2-3.8.3
+      note: Controlled transfer between security domains with verification.
+tests:
+  integration:
+    - path: tests/test_cds_hash_verification.py
+      description: Corrupt payload blocked; audit created; retry works.
+runbooks:
+  - path: runbooks/nats/exporter.md
+    description: Add CDS troubleshooting and audit retrieval process.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Add cds-bridge unit/integration tests + DLP lint (secrets scanning).
+evidence:
+  bundle_extensions:
+    - key: cds_transfer_receipt
+      from_path: services/cds-bridge/logs/transfers/*.jsonl
+      description: Receipts + hash digests appended to evidence.

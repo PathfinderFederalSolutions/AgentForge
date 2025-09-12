@@ -1,0 +1,18 @@
+---
+extends: default
+ignore: |
+  build/**
+  .venv/**
+  node_modules/**
+  dist/**
+  coverage/**
+  .eggs/**
+  *.egg-info/**
+rules:
+  line-length:
+    max: 140
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  document-start:
+    present: true
+  truthy: disable

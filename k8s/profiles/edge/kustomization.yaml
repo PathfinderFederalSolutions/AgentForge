@@ -1,0 +1,16 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agentforge-edge
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - nats.yaml
+  - rbac.yaml
+  - network-policies.yaml
+  - servicemonitors.yaml
+  - syncdaemon-deploy.yaml
+images:
+  - name: agentforge/syncdaemon
+    newName: agentforge/syncdaemon
+    newTag: dev

@@ -1,0 +1,15 @@
+app/build/
+**/.DS_Store
+**/build/
+.cxx/
+.gradle/
+local.properties
+**/*.iml
+.idea/
+app/release/
+app/debug/
+app/src/main/assets/client.p12
+app/src/main/assets/ca.crt
+config/client.p12
+config/ca.crt
+config/config.json.sig

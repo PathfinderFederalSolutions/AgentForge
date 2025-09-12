@@ -1,0 +1,487 @@
+{
+  "server_id": "NDKBNS3UELN66MOBKVIBXKSLPV2XNREBINA3OSIDSRAFTBJQO4ZBXEF7",
+  "now": "2025-09-11T15:37:48.23755238Z",
+  "config": {
+    "max_memory": 6163313664,
+    "max_storage": 222378590208,
+    "store_dir": "/tmp/nats/jetstream",
+    "sync_interval": 120000000000
+  },
+  "memory": 0,
+  "storage": 199535,
+  "reserved_memory": 0,
+  "reserved_storage": 0,
+  "accounts": 1,
+  "ha_assets": 0,
+  "api": {
+    "total": 86,
+    "errors": 5
+  },
+  "streams": 4,
+  "consumers": 9,
+  "messages": 324,
+  "bytes": 199535,
+  "account_details": [
+    {
+      "name": "$G",
+      "id": "$G",
+      "memory": 0,
+      "storage": 199535,
+      "reserved_memory": 18446744073709551615,
+      "reserved_storage": 18446744073709551615,
+      "accounts": 0,
+      "ha_assets": 0,
+      "api": {
+        "total": 86,
+        "errors": 5
+      },
+      "stream_detail": [
+        {
+          "name": "test_metrics_stream",
+          "created": "2025-09-10T13:04:06.464404971Z",
+          "cluster": {
+            "leader": "NDKBNS3UELN66MOBKVIBXKSLPV2XNREBINA3OSIDSRAFTBJQO4ZBXEF7"
+          },
+          "config": {
+            "name": "test_metrics_stream",
+            "subjects": [
+              "test.metrics.\u003e"
+            ],
+            "retention": "workqueue",
+            "max_consumers": -1,
+            "max_msgs": 1000,
+            "max_bytes": -1,
+            "max_age": 0,
+            "max_msgs_per_subject": -1,
+            "max_msg_size": -1,
+            "discard": "old",
+            "storage": "file",
+            "num_replicas": 1,
+            "duplicate_window": 120000000000,
+            "compression": "none",
+            "allow_direct": false,
+            "mirror_direct": false,
+            "sealed": false,
+            "deny_delete": false,
+            "deny_purge": false,
+            "allow_rollup_hdrs": false,
+            "consumer_limits": {}
+          },
+          "state": {
+            "messages": 10,
+            "bytes": 1353,
+            "first_seq": 1,
+            "first_ts": "2025-09-10T13:04:06.474773179Z",
+            "last_seq": 10,
+            "last_ts": "2025-09-10T13:04:07.394576346Z",
+            "num_subjects": 10,
+            "consumer_count": 0
+          }
+        },
+        {
+          "name": "swarm_jobs",
+          "created": "2025-09-10T13:15:59.213268675Z",
+          "cluster": {
+            "leader": "NDKBNS3UELN66MOBKVIBXKSLPV2XNREBINA3OSIDSRAFTBJQO4ZBXEF7"
+          },
+          "config": {
+            "name": "swarm_jobs",
+            "subjects": [
+              "swarm.jobs.*"
+            ],
+            "retention": "workqueue",
+            "max_consumers": -1,
+            "max_msgs": -1,
+            "max_bytes": -1,
+            "max_age": 0,
+            "max_msgs_per_subject": -1,
+            "max_msg_size": -1,
+            "discard": "old",
+            "storage": "file",
+            "num_replicas": 1,
+            "duplicate_window": 120000000000,
+            "compression": "none",
+            "allow_direct": false,
+            "mirror_direct": false,
+            "sealed": false,
+            "deny_delete": false,
+            "deny_purge": false,
+            "allow_rollup_hdrs": false,
+            "consumer_limits": {}
+          },
+          "state": {
+            "messages": 32,
+            "bytes": 5002,
+            "first_seq": 281,
+            "first_ts": "2025-09-10T13:19:57.070792008Z",
+            "last_seq": 312,
+            "last_ts": "2025-09-10T19:29:25.542849755Z",
+            "num_subjects": 2,
+            "consumer_count": 3
+          },
+          "consumer_detail": [
+            {
+              "stream_name": "swarm_jobs",
+              "name": "worker-staging",
+              "created": "2025-09-10T13:15:59.228323259Z",
+              "config": {
+                "durable_name": "worker-staging",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.jobs.staging",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 128,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 300,
+                "stream_seq": 300,
+                "last_active": "2025-09-10T13:20:06.848370679Z"
+              },
+              "ack_floor": {
+                "consumer_seq": 280,
+                "stream_seq": 280,
+                "last_active": "2025-09-10T13:20:06.848029387Z"
+              },
+              "num_ack_pending": 20,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 10,
+              "ts": "2025-09-11T15:37:48.244769255Z"
+            },
+            {
+              "stream_name": "swarm_jobs",
+              "name": "worker-production",
+              "created": "2025-09-10T13:15:59.235320217Z",
+              "config": {
+                "durable_name": "worker-production",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.jobs.production",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246179547Z"
+            },
+            {
+              "stream_name": "swarm_jobs",
+              "name": "worker-development",
+              "created": "2025-09-10T13:15:59.239247634Z",
+              "config": {
+                "durable_name": "worker-development",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.jobs.development",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246180589Z"
+            }
+          ]
+        },
+        {
+          "name": "swarm_results",
+          "created": "2025-09-10T13:15:59.221673925Z",
+          "cluster": {
+            "leader": "NDKBNS3UELN66MOBKVIBXKSLPV2XNREBINA3OSIDSRAFTBJQO4ZBXEF7"
+          },
+          "config": {
+            "name": "swarm_results",
+            "subjects": [
+              "swarm.results.*"
+            ],
+            "retention": "limits",
+            "max_consumers": -1,
+            "max_msgs": -1,
+            "max_bytes": -1,
+            "max_age": 0,
+            "max_msgs_per_subject": -1,
+            "max_msg_size": -1,
+            "discard": "old",
+            "storage": "file",
+            "num_replicas": 1,
+            "duplicate_window": 120000000000,
+            "compression": "none",
+            "allow_direct": false,
+            "mirror_direct": false,
+            "sealed": false,
+            "deny_delete": false,
+            "deny_purge": false,
+            "allow_rollup_hdrs": false,
+            "consumer_limits": {}
+          },
+          "state": {
+            "messages": 282,
+            "bytes": 193180,
+            "first_seq": 1,
+            "first_ts": "2025-09-10T13:19:30.582336968Z",
+            "last_seq": 282,
+            "last_ts": "2025-09-11T03:06:14.631098634Z",
+            "num_subjects": 2,
+            "consumer_count": 3
+          },
+          "consumer_detail": [
+            {
+              "stream_name": "swarm_results",
+              "name": "results-staging",
+              "created": "2025-09-10T13:15:59.232918884Z",
+              "config": {
+                "durable_name": "results-staging",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.results.staging",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 280,
+              "ts": "2025-09-11T15:37:48.246770339Z"
+            },
+            {
+              "stream_name": "swarm_results",
+              "name": "results-production",
+              "created": "2025-09-10T13:15:59.236188259Z",
+              "config": {
+                "durable_name": "results-production",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.results.production",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246771214Z"
+            },
+            {
+              "stream_name": "swarm_results",
+              "name": "results-development",
+              "created": "2025-09-10T13:15:59.240228217Z",
+              "config": {
+                "durable_name": "results-development",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.results.development",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.24677163Z"
+            }
+          ]
+        },
+        {
+          "name": "swarm_hitl",
+          "created": "2025-09-10T13:15:59.223781425Z",
+          "cluster": {
+            "leader": "NDKBNS3UELN66MOBKVIBXKSLPV2XNREBINA3OSIDSRAFTBJQO4ZBXEF7"
+          },
+          "config": {
+            "name": "swarm_hitl",
+            "subjects": [
+              "swarm.hitl.*"
+            ],
+            "retention": "limits",
+            "max_consumers": -1,
+            "max_msgs": -1,
+            "max_bytes": -1,
+            "max_age": 0,
+            "max_msgs_per_subject": -1,
+            "max_msg_size": -1,
+            "discard": "old",
+            "storage": "file",
+            "num_replicas": 1,
+            "duplicate_window": 120000000000,
+            "compression": "none",
+            "allow_direct": false,
+            "mirror_direct": false,
+            "sealed": false,
+            "deny_delete": false,
+            "deny_purge": false,
+            "allow_rollup_hdrs": false,
+            "consumer_limits": {}
+          },
+          "state": {
+            "messages": 0,
+            "bytes": 0,
+            "first_seq": 0,
+            "first_ts": "0001-01-01T00:00:00Z",
+            "last_seq": 0,
+            "last_ts": "0001-01-01T00:00:00Z",
+            "consumer_count": 3
+          },
+          "consumer_detail": [
+            {
+              "stream_name": "swarm_hitl",
+              "name": "hitl-staging",
+              "created": "2025-09-10T13:15:59.234269675Z",
+              "config": {
+                "durable_name": "hitl-staging",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.hitl.staging",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246773297Z"
+            },
+            {
+              "stream_name": "swarm_hitl",
+              "name": "hitl-production",
+              "created": "2025-09-10T13:15:59.237920967Z",
+              "config": {
+                "durable_name": "hitl-production",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.hitl.production",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246773505Z"
+            },
+            {
+              "stream_name": "swarm_hitl",
+              "name": "hitl-development",
+              "created": "2025-09-10T13:15:59.241444467Z",
+              "config": {
+                "durable_name": "hitl-development",
+                "deliver_policy": "all",
+                "ack_policy": "explicit",
+                "ack_wait": 30000000000,
+                "max_deliver": -1,
+                "filter_subject": "swarm.hitl.development",
+                "replay_policy": "instant",
+                "max_waiting": 512,
+                "max_ack_pending": 1000,
+                "num_replicas": 0
+              },
+              "delivered": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "ack_floor": {
+                "consumer_seq": 0,
+                "stream_seq": 0
+              },
+              "num_ack_pending": 0,
+              "num_redelivered": 0,
+              "num_waiting": 0,
+              "num_pending": 0,
+              "ts": "2025-09-11T15:37:48.246773964Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

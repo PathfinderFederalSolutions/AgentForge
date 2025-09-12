@@ -1,0 +1,149 @@
+groups:
+  - name: nats_recording_rules
+    interval: 30s
+    rules:
+      - record: nats:jetstream_stream_messages_rate
+        expr: rate(jetstream_stream_messages[5m])
+      
+      - record: nats:jetstream_consumer_delivered_rate
+        expr: rate(jetstream_consumer_delivered[5m])
+      
+      - record: nats:server_connection_count
+        expr: gnatsd_varz_connections
+      
+      - record: nats:jetstream_memory_usage_percent
+        expr: (jetstream_server_total_message_bytes / jetstream_server_max_memory) * 100
+      
+      # SLO Recording Rules
+      - record: jetstream_backlog
+        expr: sum(jetstream_consumer_num_pending)
+      
+      - record: slo_backlog_drain_p95
+        expr: histogram_quantile(0.95, rate(backlog_drain_seconds_bucket[5m]))
+      
+      - record: slo_violation_ratio_1h
+        expr: increase(slo_violation_events_total[1h])
+
+  - name: nats_alerting_rules
+    interval: 30s
+    rules:
+      - alert: NATSServerDown
+        expr: up{job="nats-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NATS server is down"
+          description: "NATS server has been down for more than 1 minute"
+
+      - alert: JetStreamHighMemoryUsage
+        expr: nats:jetstream_memory_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JetStream memory usage is high"
+          description: "JetStream memory usage is {{ $value }}% which is above 80%"
+
+      - alert: JetStreamStreamBacklog
+        expr: jetstream_stream_messages > 10000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JetStream stream has high message backlog"
+          description: "Stream {{ $labels.stream_name }} has {{ $value }} messages in backlog"
+
+      - alert: NATSConnectionHigh
+        expr: gnatsd_varz_connections > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of NATS connections"
+          description: "NATS server has {{ $value }} connections, which is above 1000"
+      
+      # SLO Alerting Rules
+      - alert: SustainedBacklogWarning
+        expr: jetstream_backlog >= 3000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained high backlog detected"
+          description: "JetStream backlog has been >= 3000 messages for more than 10 minutes (current: {{ $value }})"
+      
+      - alert: SustainedBacklogCritical
+        expr: jetstream_backlog >= 3000
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical sustained backlog"
+          description: "JetStream backlog has been >= 3000 messages for more than 15 minutes (current: {{ $value }})"
+      
+      - alert: AckPendingHigh
+        expr: jetstream_consumer_ack_pending > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of pending acknowledgments"
+          description: "Consumer {{ $labels.consumer_name }} has {{ $value }} pending acknowledgments"
+
+  - name: canary_alerting_rules
+    interval: 30s
+    rules:
+      - alert: CanaryRegressionDetected
+        expr: increase(canary_regressions_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Canary regression detected"
+          description: "One or more regression dimensions triggered in last 5m. Investigate canary performance."
+
+      - alert: CanaryRollbackEvent
+        expr: increase(canary_rollbacks_total[15m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Canary rollback executed"
+          description: "A canary rollback occurred within last 15m. Ensure baseline policy health & analyze deltas."
+
+      - alert: CanaryStalledPromotion
+        expr: canary_traffic_fraction{phase="canary"} < 0.05 and time() - on() max_over_time(canary_traffic_fraction{phase="canary"}[30m]) > 1800
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Canary promotion stalled"
+          description: "Canary traffic fraction has not increased meaningfully in 30m. Check evaluation pipeline."
+
+      - alert: FusionHighEqualErrorRate
+        expr: histogram_quantile(0.5, sum(rate(fusion_roc_eer_bucket[15m])) by (le)) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fusion EER elevated"
+          description: "Median equal error rate over last 15m exceeds 0.3; investigate calibration quality."
+
+      - alert: FusionLatencyBudgetBreached
+        expr: increase(fusion_latency_budget_violations_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fusion latency budget violations"
+          description: "Fusion pipeline exceeded configured latency budget within last 10m. Investigate performance regressions."
+
+      - alert: CanaryEvalLatencyBudgetBreached
+        expr: increase(canary_eval_latency_budget_violations_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Canary evaluation latency budget breached"
+          description: "Canary evaluation cycles exceeding latency budget; may block timely promotions or rollbacks."

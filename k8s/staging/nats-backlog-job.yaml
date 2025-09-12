@@ -1,0 +1,102 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nats-backlog
+  namespace: agentforge-staging
+  labels:
+    app: nats-backlog
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: nats-backlog
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: nats-box
+          image: natsio/nats-box:latest
+          env:
+            - name: BACKLOG_COUNT
+              value: "200"
+            - name: SVC
+              value: "nats.agentforge-staging.svc.cluster.local:4222"
+          command:
+            - sh
+            - -lc
+            - |
+              set -euo pipefail
+
+              echo "Waiting for NATS/JetStream..."
+              for i in $(seq 1 60); do
+                if nats --server "$SVC" req '$JS.API.INFO' '{}' >/dev/null 2>&1; then
+                  echo "JetStream ready"; break; fi
+                sleep 2
+                [ "$i" -eq 60 ] && echo "NATS/JetStream not ready in time" && exit 1
+              done
+
+              # Ensure swarm_jobs (workqueue)
+              cat >/tmp/stream_jobs.json <<'JSON'
+              {
+                "name": "swarm_jobs",
+                "subjects": ["swarm.jobs.*"],
+                "retention": "workqueue",
+                "storage": "file",
+                "discard": "old",
+                "max_msgs": -1,
+                "duplicates": "1m",
+                "allow_direct": true,
+                "num_replicas": 1
+              }
+              JSON
+              nats --server "$SVC" stream info swarm_jobs >/dev/null 2>&1 || \
+                nats --server "$SVC" stream add --config /tmp/stream_jobs.json >/dev/null
+
+              # Ensure durable consumer worker-staging (filtered to staging)
+              nats --server "$SVC" consumer info swarm_jobs worker-staging -j >/dev/null 2>&1 || \
+                nats --server "$SVC" consumer add swarm_jobs \
+                  --ack explicit --deliver all \
+                  --filter swarm.jobs.staging \
+                  --max-ack-pending 128 worker-staging >/dev/null
+
+              # Optional: ensure other streams exist (limits)
+              cat >/tmp/stream_hitl.json <<'JSON'
+              {
+                "name": "swarm_hitl",
+                "subjects": ["swarm.hitl.*"],
+                "retention": "limits",
+                "storage": "file",
+                "discard": "old",
+                "max_msgs": -1,
+                "duplicates": "1m",
+                "allow_direct": true,
+                "num_replicas": 1
+              }
+              JSON
+              nats --server "$SVC" stream info swarm_hitl >/dev/null 2>&1 || \
+                nats --server "$SVC" stream add --config /tmp/stream_hitl.json >/dev/null
+
+              cat >/tmp/stream_results.json <<'JSON'
+              {
+                "name": "swarm_results",
+                "subjects": ["swarm.results.*"],
+                "retention": "limits",
+                "storage": "file",
+                "discard": "old",
+                "max_msgs": -1,
+                "duplicates": "1m",
+                "allow_direct": true,
+                "num_replicas": 1
+              }
+              JSON
+              nats --server "$SVC" stream info swarm_results >/dev/null 2>&1 || \
+                nats --server "$SVC" stream add --config /tmp/stream_results.json >/dev/null
+
+              # Publish backlog
+              for i in $(seq 1 "${BACKLOG_COUNT:-200}"); do
+                nats --server "$SVC" pub swarm.jobs.staging "{\"id\":$i,\"ts\":\"$(date -Is)\"}" >/dev/null
+              done
+
+              echo "Backlog published: ${BACKLOG_COUNT:-200}"

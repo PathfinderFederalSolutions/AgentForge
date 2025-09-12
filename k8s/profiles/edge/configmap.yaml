@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentforge-config
+  namespace: agentforge-edge
+data:
+  ENV: "edge"
+  MISSION: "edge"
+  EDGE_MODE: "1"
+  SECURITY_HARDENED: "1"
+  AIRGAPPED: "1"
+  EXTERNAL_TOOLS: "0"
+  VECTOR_SYNC: "0"
+  MEMORY_MESH_MODE: "dist"
+  CRITIC_HEALER_ENABLED: "1"
+  DISPATCH_MODE: "nats"
+  NATS_URL: "nats://nats:4222"
+  JETSTREAM_PATH: "/lib/nats"
+  NATS_FETCH_BATCH: "4"
+  NATS_FETCH_WAIT: "8.0"
+  SWARM_DB_URL: "sqlite:////app/var/swarm.db"
+  LOCAL_ARTIFACTS_DIR: "/app/var/artifacts"
+  VECTOR_ENABLED: "1"
+  VECTOR_DB_URL: "sqlite:////app/var/vector.db"

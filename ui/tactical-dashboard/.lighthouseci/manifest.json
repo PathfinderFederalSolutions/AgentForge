@@ -1,0 +1,15 @@
+[
+  {
+    "url": "http://localhost:5182/",
+    "isRepresentativeRun": true,
+    "htmlPath": "/Users/baileymahoney/AgentForge/ui/tactical-dashboard/.lighthouseci/localhost-_-2025_09_11_23_40_41.report.html",
+    "jsonPath": "/Users/baileymahoney/AgentForge/ui/tactical-dashboard/.lighthouseci/localhost-_-2025_09_11_23_40_41.report.json",
+    "summary": {
+      "performance": 0.86,
+      "accessibility": 1,
+      "best-practices": 0.93,
+      "seo": 0.85,
+      "pwa": 0.38
+    }
+  }
+]

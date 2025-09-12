@@ -1,0 +1,53 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase04_chaos
+title: Chaos Experiments + Recovery Runbooks
+objective: Validate resilience under NATS restart, network partitions, stream corruption, replay storms.
+preconditions:
+  - description: Staging cluster with KEDA/HPA enabled; Prometheus alerts active.
+inputs:
+  - path: k8s/staging/
+  - path: runbooks/nats/*
+outputs:
+  - path: chaos/experiments/
+  - path: grafana/nats-slo-dashboard.json
+code_changes:
+  - path: scripts/e2e/scale-from-zero.sh
+    action: update
+    description: Add chaos hooks to trigger experiments, snapshot metrics, and archive results.
+    acceptance_criteria:
+      - Artifacts stored under var/artifacts/chaos/<timestamp>.
+k8s_changes:
+  - path: k8s/staging/chaos-mesh.yaml
+    action: create
+    description: Install Chaos Mesh/Litmus; define experiments for nats restart, net partitions.
+metrics:
+  - name: chaos_recovery_seconds
+    type: histogram
+    producer: chaos/experiments/exporter
+    prom_rule: chaos_recovery_slo_breach
+security_compliance:
+  fedramp_mapping:
+    - control: CP-10
+      note: Recovery and reconstitution testing with recorded outcomes.
+  cmmc_mapping:
+    - practice: IR.L2-3.6.3
+      note: Incident response tests and lessons learned records.
+tests:
+  chaos:
+    - path: tests/chaos/test_nats_restart_latency.py
+      description: Ensure capped latency < target during/after chaos.
+    - path: tests/chaos/test_partition_router.py
+      description: Policy fallback works under API↔NATS cut.
+runbooks:
+  - path: runbooks/keda/scaler-errors.md
+    description: Add “chaos observed behaviors” and remediation steps.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/kind-e2e-scale-from-zero.yml
+      change: Add chaos job matrix with pass/fail gates on SLOs.
+evidence:
+  bundle_extensions:
+    - key: chaos_results
+      from_path: var/artifacts/chaos/**/*
+      description: Attach experiment manifests + metrics exports.

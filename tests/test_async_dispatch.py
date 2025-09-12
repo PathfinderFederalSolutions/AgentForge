@@ -1,8 +1,6 @@
 # filepath: tests/test_async_dispatch.py
-import os
 import sys
 import types
-import asyncio
 import json
 import pytest
 
@@ -32,6 +30,49 @@ class _FakeTemporalClient:
         # Return a handle-like object with id
         jid = kwargs.get("id") or "job-123"
         return _FakeTemporalHandle(jid)
+
+
+class _AckRecordingMsg:
+    def __init__(self, data: dict):
+        self.data = json.dumps(data).encode()
+        self.ack_count = 0
+    async def ack(self):
+        self.ack_count += 1
+
+class _DummyJS:
+    def __init__(self):
+        self.subscribed = None
+        self._cb = None
+    async def subscribe(self, subject, durable, cb, manual_ack):  # noqa: D401
+        self.subscribed = (subject, durable, manual_ack)
+        self._cb = cb
+
+@pytest.mark.asyncio
+async def test_manual_ack_and_idempotent():
+    from services.orchestrator.app import nats_client
+
+    bus = nats_client.NatsBus()
+    dummy_js = _DummyJS()
+    bus.js = dummy_js
+    bus.nc = object()  # not used in this test
+
+    processed: list[str] = []
+
+    async def _cb(payload, msg):
+        processed.append(payload['job_id'])
+
+    await bus.subscribe(nats_client.JOBS_SUBJECT, _cb)
+
+    payload = {"job_id": "job-dup", "goal": "X", "agents": 1}
+    msg1 = _AckRecordingMsg(payload)
+    await dummy_js._cb(msg1)
+    msg2 = _AckRecordingMsg(payload)  # duplicate
+    await dummy_js._cb(msg2)
+
+    # Only processed once but acked twice (success + dedupe)
+    assert processed == ["job-dup"]
+    assert msg1.ack_count == 1
+    assert msg2.ack_count == 1
 
 
 @pytest.fixture(autouse=True)
@@ -80,3 +121,33 @@ def test_submit_job_temporal_dispatch(monkeypatch):
     assert body["decision"]["action"] == "queued"
     assert body["results"][0]["status"] == "queued"
     assert "job_id" in body["results"][0]
+
+
+from swarm.workers.nats_worker import AdaptiveBatchController
+
+@pytest.mark.parametrize("gpu_total,avg_mem,expected_cap", [
+    (16000, 1000, 13),  # 16GB / (1GB *1.2) -> 13.x
+    (8000, 2000, 3),    # 8GB / (2GB *1.2) -> 3.x
+])
+def test_adaptive_batch_gpu_cap(gpu_total, avg_mem, expected_cap):
+    c = AdaptiveBatchController(max_batch=32, gpu_total_mem=gpu_total, safety=1.2, target_latency_s=2.0)
+    c._ema_gpu_mem = avg_mem
+    cap = c._gpu_limited_batch()
+    assert cap == expected_cap
+
+@pytest.mark.asyncio
+async def test_adaptive_batch_growth_and_latency_guard():
+    # Lower target latency so a single high-latency sample triggers shrink quickly
+    c = AdaptiveBatchController(max_batch=10, gpu_total_mem=0, target_latency_s=0.5)
+    # simulate fast processing and backlog pressure
+    c._ema_latency = 0.1
+    batch = c.compute_next_batch(queue_depth=10)  # initial from 2 -> consider growth
+    assert 1 <= batch <= 3
+    # force growth path repeatedly
+    for _ in range(5):
+        batch = c.compute_next_batch(queue_depth=100)
+    assert batch > 2  # grew
+    # now inject high latency to trigger shrink
+    c.record_job(gpu_mem_mb=None, latency_s=5.0)
+    shrunk = c.compute_next_batch(queue_depth=100)
+    assert shrunk < batch  # shrank due to latency guard

@@ -1,0 +1,65 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase05_comms
+title: Soldier Comms Gateway (WebSocket/REST) + TTS/Haptics
+objective: Deliver actionable alerts to TAK/Nett Warrior within latency SLO; priority queue + anti-spam.
+preconditions:
+  - description: Tactical UI streaming operational.
+inputs:
+  - path: services/hitl/app.py
+  - path: swarm/api/main.py
+outputs:
+  - path: services/comms-gateway/app/main.py
+  - path: integrations/atak/plugin/ (update)
+code_changes:
+  - path: services/comms-gateway/app/main.py
+    action: create
+    description: WebSocket+REST gateway, priority queues, jitter buffer, per-device rate limits, offline TTS using on-device engine when available.
+    acceptance_criteria:
+      - 99% alerts delivered ≤ 2s to 50 devices in test; spam bursts damped.
+  - path: services/hitl/app.py
+    action: update
+    description: Add policy-based “soldier_alert” topic emit with evidence links.
+    acceptance_criteria:
+      - Only high-priority events propagate; others remain TOC-only.
+k8s_changes:
+  - path: k8s/staging/hitl-ui.yaml
+    action: update
+    description: Expose comms-gateway behind mTLS ingress; strict netpols egress to device brokers.
+metrics:
+  - name: comms_alert_delivery_seconds
+    type: histogram
+    producer: services/comms-gateway/app/main.py
+    prom_rule: comms_latency_breach
+  - name: comms_device_rate_limited_total
+    type: counter
+    producer: services/comms-gateway/app/main.py
+    prom_rule: excessive_throttling
+security_compliance:
+  fedramp_mapping:
+    - control: SC-8
+      note: TLS/mTLS; FIPS crypto; AES-256-GCM for stored alerts.
+    - control: AC-6
+      note: Per-device least privilege tokens; rotate credentials.
+  cmmc_mapping:
+    - practice: IA.L2-3.5.3
+      note: MFA/PKI for device enrollment.
+tests:
+  integration:
+    - path: tests/test_comms_delivery_latency.py
+      description: Measures e2e publish→device confirmation.
+  unit:
+    - path: tests/test_comms_ratelimit.py
+      description: Verifies per-device quotas and jitter buffer behavior.
+runbooks:
+  - path: runbooks/latency/budgets.md
+    description: Add soldier alert latency budget + triage steps.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Container image scanning (trivy) + SAST (semgrep) for comms-gateway.
+evidence:
+  bundle_extensions:
+    - key: soldier_alert_delivery
+      from_path: services/comms-gateway/logs/delivery/*.jsonl
+      description: Delivery receipts hashed and attached.

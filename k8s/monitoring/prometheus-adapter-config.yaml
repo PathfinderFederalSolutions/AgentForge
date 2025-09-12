@@ -1,0 +1,63 @@
+# Configuration for Prometheus Adapter to expose JetStream backlog metrics
+# for Kubernetes HPA (Horizontal Pod Autoscaler)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    rules:
+    # JetStream backlog metrics for HPA
+    - seriesQuery: 'jetstream_backlog'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^jetstream_backlog$"
+        as: "backlog_current"
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+    
+    # SLO violation ratio for monitoring
+    - seriesQuery: 'slo_violation_ratio_1h'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^slo_violation_ratio_1h$"
+        as: "slo_violations_hourly"
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+    
+    # P95 drain time for SLO monitoring
+    - seriesQuery: 'slo_backlog_drain_p95'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^slo_backlog_drain_p95$"
+        as: "backlog_drain_p95_seconds"
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+
+    resourceRules:
+      cpu:
+        containerQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,container!="POD",container!="",pod!=""}[5m])) by (<<.GroupBy>>)
+        nodeQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>,id="/"}[5m])) by (<<.GroupBy>>)
+        resources:
+          overrides:
+            instance: {resource: node}
+            namespace: {resource: namespace}
+            pod: {resource: pod}
+        containerLabel: container
+      memory:
+        containerQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,container!="POD",container!="",pod!=""}) by (<<.GroupBy>>)
+        nodeQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id="/"}) by (<<.GroupBy>>)
+        resources:
+          overrides:
+            instance: {resource: node}
+            namespace: {resource: namespace}
+            pod: {resource: pod}
+        containerLabel: container

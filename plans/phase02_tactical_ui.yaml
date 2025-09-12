@@ -1,0 +1,70 @@
+version: v1
+kind: PhaseSpec
+phase_id: phase02_tactical_ui
+title: Tactical Map UI + ATAK Prototype
+objective: Provide map overlays and alerts for TOC/command and push minimal markers to ATAK.
+preconditions:
+  - description: API outputs geospatial JSON; HITL notifications working.
+inputs:
+  - path: swarm/api/main.py
+  - path: swarm/api/metrics.py
+  - path: services/hitl/app.py
+outputs:
+  - path: ui/tactical-dashboard/ (React)
+  - path: integrations/atak/plugin/
+  - path: grafana/tool-executor-dashboard.json        # add tactical_alerts panels
+code_changes:
+  - path: swarm/api/main.py
+    action: update
+    description: Add `/v1/events/stream` (SSE/WebSocket) for geospatial updates; sanitize payloads.
+    acceptance_criteria:
+      - Load test shows p95 < 200ms server-side for 100 concurrent clients.
+  - path: services/orchestrator/app/models.py
+    action: update
+    description: Add GeoJSON schemas for threat zones/markers with evidence_link.
+    acceptance_criteria:
+      - JSON schema validation enforces bounds and type safety.
+k8s_changes:
+  - path: k8s/staging/api-deploy.yaml
+    action: update
+    description: Expose ws/SSE endpoint; set strict CORS; mTLS for internal plugins.
+  - path: k8s/staging/servicemonitors.yaml
+    action: update
+    description: Scrape tactical UI gateway if added.
+metrics:
+  - name: tactical_alerts_published_total
+    type: counter
+    producer: swarm/api/metrics.py
+    prom_rule: tactical_alert_drop_rate
+  - name: ui_stream_clients
+    type: gauge
+    producer: ui/tactical-dashboard/gateway (node)
+    prom_rule: ui_over_subscription
+security_compliance:
+  fedramp_mapping:
+    - control: AC-3
+      note: OAuth2 + mTLS client certs for ATAK plugin.
+    - control: SI-10
+      note: Input validation on GeoJSON (drop malformed).
+  cmmc_mapping:
+    - practice: AC.L2-3.1.7
+      note: Least privilege API scopes for plugin.
+tests:
+  unit:
+    - path: tests/test_geojson_schema.py
+      description: Validate schema; XSS payloads rejected.
+  integration:
+    - path: tests/test_sse_ws_stream.py
+      description: Ensure backpressure and disconnect handling.
+runbooks:
+  - path: runbooks/latency/budgets.md
+    description: Add UI streaming budget and troubleshooting steps.
+ci_pipeline:
+  github_actions:
+    - path: .github/workflows/ci.yml
+      change: Add UI build (pnpm) + dependency audit (npm audit, trivy fs).
+evidence:
+  bundle_extensions:
+    - key: tactical_view_snapshot
+      from_path: ui/tactical-dashboard/snapshots/*.png
+      description: Screenshot + event ID linkage.

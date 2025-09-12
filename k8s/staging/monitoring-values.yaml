@@ -1,0 +1,31 @@
+grafana:
+  enabled: true
+  service:
+    type: ClusterIP
+  adminPassword: admin
+  defaultDashboardsEnabled: true
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: "agentforge-staging"
+      label: grafana_dashboard
+      labelValue: "1"
+    datasources:
+      enabled: true
+prometheus:
+  enabled: true
+  service:
+    type: ClusterIP
+  prometheusSpec:
+    serviceMonitorSelector:
+      matchLabels:
+        release: kube-prom
+    serviceMonitorNamespaceSelector: {}
+    ruleSelector:
+      matchLabels:
+        release: kube-prom
+    ruleNamespaceSelector: {}
+kube-state-metrics:
+  enabled: true
+prometheusOperator:
+  enabled: true

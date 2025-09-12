@@ -1,0 +1,2 @@
+NAME             SCHEDULE     TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE     CONTAINERS   IMAGES              SELECTOR
+pg-maintenance   30 3 * * *   <none>     False     0        12h             4d12h   pg-maint     agentforge:latest   <none>

@@ -1,0 +1,14 @@
+{
+  "baseUrl": "https://10.0.2.2:8443",
+  "eventsPath": "/events/stream",
+  "pollIntervalSec": 5,
+  "mtls": {
+    "clientP12": "client.p12",
+    "clientP12Password": "changeit",
+    "caCert": "ca.crt"
+  },
+  "sig": {
+    "algo": "ed25519",
+    "pubKey": ""
+  }
+}

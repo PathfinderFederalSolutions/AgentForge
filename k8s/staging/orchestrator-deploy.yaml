@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      serviceAccountName: orchestrator-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: orchestrator
+          image: agentforge:latest
+          # Run uvicorn directly to avoid importing the module twice which caused
+          # duplicate Prometheus metric registration
+          command: ["python","-m","uvicorn","services.orchestrator.app.main:app","--host","0.0.0.0","--port","8000"]
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+          env:
+            - name: NATS_URL
+              value: "nats://nats.agentforge-staging.svc.cluster.local:4222"
+            - name: SWARM_STREAM
+              value: "swarm.jobs.staging"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.agentforge-staging.svc.cluster.local:4318"
+            - name: HOME
+              value: "/tmp"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          ports:
+            - containerPort: 8000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: agentforge-staging
+  labels:
+    app: orchestrator
+spec:
+  selector:
+    app: orchestrator
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http

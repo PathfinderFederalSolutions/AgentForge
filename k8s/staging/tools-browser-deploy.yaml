@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-browser
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tool-browser
+  template:
+    metadata:
+      labels:
+        app: tool-browser
+    spec:
+      containers:
+        - name: browser
+          image: python:3.11-slim
+          command: ["python","-m","services.tools.browser.app.main"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+          ports:
+            - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tool-browser
+  namespace: agentforge-staging
+spec:
+  selector:
+    app: tool-browser
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http

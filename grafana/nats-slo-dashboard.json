@@ -1,0 +1,197 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "NATS JetStream SLO Dashboard",
+    "tags": ["nats", "jetstream", "slo"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "SLO Backlog Drain P95",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "slo_backlog_drain_p95",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 300},
+                {"color": "red", "value": 600}
+              ]
+            },
+            "unit": "s",
+            "min": 0,
+            "max": 1200
+          }
+        },
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 2,
+        "title": "Current JetStream Backlog",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "jetstream_backlog",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "red", "value": 3000}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "SLO Violation Ratio (1h)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "slo_violation_ratio_1h",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.01},
+                {"color": "red", "value": 0.05}
+              ]
+            },
+            "unit": "percentunit"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "SLO Violation Ratios Over Time",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "increase(slo_violation_events_total[1h])",
+            "refId": "A",
+            "legendFormat": "1h violations"
+          },
+          {
+            "expr": "increase(slo_violation_events_total[6h])",
+            "refId": "B", 
+            "legendFormat": "6h violations"
+          },
+          {
+            "expr": "increase(slo_violation_events_total[24h])",
+            "refId": "C",
+            "legendFormat": "24h violations"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "SLO Burn Rates",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(slo_violation_events_total[5m])",
+            "refId": "A",
+            "legendFormat": "Fast burn (5m window)"
+          },
+          {
+            "expr": "rate(slo_violation_events_total[1h])",
+            "refId": "B",
+            "legendFormat": "Slow burn (1h window)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "options": {
+          "tooltip": {"mode": "single", "sort": "none"},
+          "legend": {"displayMode": "visible", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 6,
+        "title": "JetStream Consumer Metrics",
+        "type": "timeseries", 
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(jetstream_consumer_num_pending) by (consumer_name)",
+            "refId": "A",
+            "legendFormat": "Pending: {{consumer_name}}"
+          },
+          {
+            "expr": "sum(jetstream_consumer_ack_pending) by (consumer_name)",
+            "refId": "B",
+            "legendFormat": "Ack Pending: {{consumer_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Active Alerts",
+        "type": "alertlist",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "options": {
+          "showOptions": "current",
+          "maxItems": 20,
+          "sortOrder": 1
+        }
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "uid": "nats_jetstream_slo"
+  }
+}
