@@ -1,0 +1,25 @@
+# Network partition between API (orchestrator) and NATS service to simulate control-plane isolation.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: partition-api-nats
+  namespace: chaos-mesh
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - agentforge-staging
+    labelSelectors:
+      app: orchestrator
+  direction: to
+  target:
+    selector:
+      namespaces:
+        - agentforge-staging
+      labelSelectors:
+        app: nats
+    mode: all
+  duration: "2m"
+  externalTargets: []
+  # ...removed unsupported scheduler; apply triggers immediate execution

@@ -7,6 +7,7 @@ import json
 import time
 import os
 import sys
+import pytest
 
 try:
     import nats
@@ -16,6 +17,8 @@ except ImportError:
     print("NATS Python client not available")
     NATS_AVAILABLE = False
 
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_jetstream_operations():
     """Test JetStream operations and verify metrics"""
     if not NATS_AVAILABLE:

@@ -21,10 +21,15 @@ from swarm import lineage
 from swarm.critic_healer import CriticHealer
 from swarm.bkg import store as bkg
 
-try:
-    from orchestrator import build_orchestrator
-except Exception:
-    build_orchestrator = None
+# Lazy import to avoid heavy startup costs
+_build_orchestrator = None
+
+def _get_build_orchestrator():
+    global _build_orchestrator
+    if _build_orchestrator is None:
+        from orchestrator import build_orchestrator
+        _build_orchestrator = build_orchestrator
+    return _build_orchestrator
 
 @dataclass
 class JobInput:
@@ -42,8 +47,7 @@ def run_orchestration(inp: JobInput) -> Dict[str, Any]:
     if existing and existing.get("decision", {}).get("approved", False):
         return {"job_id": inp.job_id, "decision": existing["decision"], "results": existing["results"], "source": "bkg"}
 
-    if not build_orchestrator:
-        raise RuntimeError("Orchestrator unavailable")
+    build_orchestrator = _get_build_orchestrator()
 
     use_ch = os.getenv("CRITIC_HEALER_ENABLED", "1") != "0"
     if use_ch:

@@ -186,6 +186,39 @@
           "maxItems": 20,
           "sortOrder": 1
         }
+      },
+      {
+        "id": 100,
+        "title": "Chaos Recovery Seconds",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          { "expr": "chaos_recovery_seconds", "refId": "A", "legendFormat": "{{name}}" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "s", "color": {"mode": "palette-classic"} } },
+        "options": { "legend": {"displayMode": "table", "placement": "right"} }
+      },
+      {
+        "id": 101,
+        "title": "NATS Pod Restarts",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 24},
+        "targets": [
+          { "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"agentforge-staging\",container=\"nats\"}[15m]))", "refId": "A" }
+        ]
+      },
+      {
+        "id": 102,
+        "title": "Chaos Recovery Quantiles (p50/p90/p99)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          { "expr": "histogram_quantile(0.50, sum(rate(chaos_recovery_duration_seconds_bucket[5m])) by (le))", "refId": "A", "legendFormat": "p50" },
+          { "expr": "histogram_quantile(0.90, sum(rate(chaos_recovery_duration_seconds_bucket[5m])) by (le))", "refId": "B", "legendFormat": "p90" },
+          { "expr": "histogram_quantile(0.99, sum(rate(chaos_recovery_duration_seconds_bucket[5m])) by (le))", "refId": "C", "legendFormat": "p99" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "s", "color": {"mode": "palette-classic"} } },
+        "options": { "legend": {"displayMode": "table", "placement": "right"} }
       }
     ],
     "time": {"from": "now-1h", "to": "now"},

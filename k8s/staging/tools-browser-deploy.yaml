@@ -47,3 +47,58 @@ spec:
     - port: 80
       targetPort: 8000
       name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: route-engine
+  namespace: agentforge-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: route-engine
+  template:
+    metadata:
+      labels:
+        app: route-engine
+    spec:
+      containers:
+        - name: route-engine
+          image: python:3.11-slim
+          command: ["python","-m","services.route_engine.app.main"]
+          env:
+            - name: ROUTE_AOI_BBOX
+              value: "-122.6,37.6,-122.3,37.9"
+            - name: ROUTE_GRID_SIZE
+              value: "128"
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          ports:
+            - containerPort: 8010
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: route-engine
+  namespace: agentforge-staging
+spec:
+  selector:
+    app: route-engine
+  ports:
+    - port: 80
+      targetPort: 8010
+      name: http

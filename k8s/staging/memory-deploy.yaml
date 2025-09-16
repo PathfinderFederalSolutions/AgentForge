@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: memory
-          image: python:3.11-slim
+          image: agentforge:latest
+          imagePullPolicy: IfNotPresent
           command: ["python","-m","services.memory.app.main"]
           resources:
             requests:

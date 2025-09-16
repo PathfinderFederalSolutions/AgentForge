@@ -12,6 +12,7 @@ from typing import List, Dict, Any
 import os
 import sys
 from datetime import datetime, timezone
+import pytest
 
 # Add project root to path
 sys.path.append('/Users/baileymahoney/AgentForge')
@@ -376,6 +377,15 @@ async def main():
         if cleanup_workers:
             print("\n🧹 Cleaning up workers...")
             cleanup_workers()
+
+
+def test_drain_test_configuration():
+    """Test that drain test configuration is valid"""
+    assert BACKLOG_COUNT > 0, "Backlog count must be positive"
+    assert RUNS > 0, "Runs count must be positive"
+    assert MAX_CAP_MINUTES > 0, "Max cap minutes must be positive"
+    assert OBJ_P95_MINUTES > 0, "Objective P95 minutes must be positive"
+    assert OBJ_P95_MINUTES <= MAX_CAP_MINUTES, "P95 objective must be <= max cap"
 
 
 if __name__ == "__main__":

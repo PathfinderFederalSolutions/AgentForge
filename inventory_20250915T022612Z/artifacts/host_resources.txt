@@ -1,0 +1,69 @@
+CPU:
+Apple M3 Pro
+Load:
+22:26  up 7 days,  6:48, 1 user, load averages: 7.09 5.27 5.20
+Memory:
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                3409.
+Pages active:                            182479.
+Pages inactive:                          173038.
+Pages speculative:                         8595.
+Pages throttled:                              0.
+Pages wired down:                        239968.
+Pages purgeable:                              0.
+"Translation faults":               24570114605.
+Pages copy-on-write:                  191463771.
+Pages zero filled:                   2421127119.
+Pages reactivated:                   9998216578.
+Pages purged:                         508616760.
+File-backed pages:                       133029.
+Anonymous pages:                         231083.
+Disk:
+Filesystem                                               Size    Used   Avail Capacity iused ifree %iused  Mounted on
+/dev/disk3s1s1                                          460Gi    13Gi    29Gi    32%    426k  306M    0%   /
+devfs                                                   216Ki   216Ki     0Bi   100%     746     0  100%   /dev
+/dev/disk3s6                                            460Gi    20Gi    29Gi    41%      20  306M    0%   /System/Volumes/VM
+/dev/disk3s2                                            460Gi    13Gi    29Gi    32%    1.8k  306M    0%   /System/Volumes/Preboot
+/dev/disk3s4                                            460Gi   733Mi    29Gi     3%     356  306M    0%   /System/Volumes/Update
+/dev/disk1s2                                            500Mi   6.0Mi   481Mi     2%       1  4.9M    0%   /System/Volumes/xarts
+/dev/disk1s1                                            500Mi   5.4Mi   481Mi     2%      34  4.9M    0%   /System/Volumes/iSCPreboot
+/dev/disk1s3                                            500Mi   2.9Mi   481Mi     1%      92  4.9M    0%   /System/Volumes/Hardware
+/dev/disk3s5                                            460Gi   382Gi    29Gi    93%    2.8M  306M    1%   /System/Volumes/Data
+map auto_home                                             0Bi     0Bi     0Bi   100%       0     0     -   /System/Volumes/Data/home
+/dev/disk2s1                                            5.0Gi   1.8Gi   3.1Gi    38%      62   33M    0%   /System/Volumes/Update/SFR/mnt1
+/dev/disk5s1                                            760Mi   703Mi    57Mi    93%     728  4.3G    0%   /Volumes/Altair RapidMiner AI Studio 2025.1.1
+/Users/baileymahoney/Downloads/Visual Studio Code.app   460Gi   384Gi    36Gi    92%    2.9M  376M    1%   /private/var/folders/_t/sdy9_c290pn3xqt_39rtkjcm0000gn/T/AppTranslocation/1E29652A-23D8-4579-ABD9-8CAE156A5A41
+/dev/disk3s1                                            460Gi    13Gi    29Gi    32%    426k  306M    0%   /System/Volumes/Update/mnt1
+Open Ports (top 50 LISTEN/UDP):
+tcp6       0      0  ::1.8081               *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.8081         *.*                    LISTEN     
+tcp4       0      0  *.52117                *.*                    LISTEN     
+tcp6       0      0  *.52108                *.*                    LISTEN     
+tcp4       0      0  *.52108                *.*                    LISTEN     
+tcp6       0      0  ::1.42050              *.*                    LISTEN     
+tcp46      0      0  *.9090                 *.*                    LISTEN     
+tcp46      0      0  *.7777                 *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.60028        *.*                    LISTEN     
+tcp4       0      0  *.59869                *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.55971        *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.8680         *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.7912         *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.7400         *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.6443         *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.50864        *.*                    LISTEN     
+tcp46      0      0  *.56640                *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.56622        *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.19292        *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.16494        *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.15393        *.*                    LISTEN     
+tcp4       0      0  *.57621                *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.15292        *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.5432         *.*                    LISTEN     
+tcp6       0      0  ::1.5432               *.*                    LISTEN     
+tcp6       0      0  ::1.6379               *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.6379         *.*                    LISTEN     
+tcp4       0      0  127.0.0.1.7768         *.*                    LISTEN     
+tcp6       0      0  *.5000                 *.*                    LISTEN     
+tcp4       0      0  *.5000                 *.*                    LISTEN     
+tcp6       0      0  *.7000                 *.*                    LISTEN     
+tcp4       0      0  *.7000                 *.*                    LISTEN     

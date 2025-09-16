@@ -1,0 +1,28 @@
+# Kustomization to install Chaos Mesh in staging via remote resources
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chaos-mesh
+resources:
+  - namespace.yaml
+  - https://mirrors.chaos-mesh.org/v2.6.3/crd.yaml
+  - https://mirrors.chaos-mesh.org/v2.6.3/chaos-mesh.yaml
+# You can add more local resources later (e.g., NetworkPolicies). Keep Chaos Mesh install via Helm to avoid 403s.
+patches:
+  # Tighten security context on controller
+  - target:
+      kind: Deployment
+      name: chaos-controller-manager
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]

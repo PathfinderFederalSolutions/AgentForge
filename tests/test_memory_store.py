@@ -15,6 +15,7 @@ class StubProvider(EmbeddingProvider):
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_upsert_and_search(monkeypatch):
     store = PGVectorStore(dsn='postgresql+asyncpg://postgres:agentforge@localhost:5432/vector', migrate=False)
     # patch provider

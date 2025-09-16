@@ -1,8 +1,20 @@
+import pytest
 from fastapi.testclient import TestClient
 from swarm.api.main import app
+import socket
 
 client = TestClient(app)
 
+def _is_nats_running(host="127.0.0.1", port=4222):
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except Exception:
+        return False
+
+@pytest.mark.skipif(not _is_nats_running(), reason="Skipping job status test: NATS not running locally")
+@pytest.mark.integration
+@pytest.mark.timeout(10)
 def test_job_status_includes_dag_hash():
     payload = {"goal": "Test deterministic DAG goal", "agents": 2}
     r = client.post("/job/sync", json=payload)

@@ -1,0 +1,129 @@
+name: Test Suite
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  route-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run route engine tests
+        run: |
+          pytest -q tests/test_route_costmap.py tests/test_route_recompute_latency.py -q
+      - name: Upload route logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: route-engine-logs
+          path: |
+            var/logs/route_engine/route_explanations.jsonl
+            var/artifacts/**/*.dag.json
+            var/artifacts/*/code.zip
+            var/fused_tracks/*.json
+          if-no-files-found: ignore
+
+  sse-ws:
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_INTEGRATION: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run SSE/WS tests
+        run: |
+          pytest -q tests/test_sse_ws_security.py tests/test_sse_ws_stream.py tests/test_bearer_security.py -q
+
+  comms:
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_INTEGRATION: '1'
+      COMMS_BASE: http://127.0.0.1:8081
+      COMMS_WS: ws://127.0.0.1:8081/ws
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest httpx websockets uvicorn
+      - name: Start comms gateway
+        run: |
+          nohup python -m uvicorn services.comms_gateway.app.main:app --host 127.0.0.1 --port 8081 >/tmp/comms.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sSf http://127.0.0.1:8081/health >/dev/null; then echo ready; break; fi; sleep 0.5; done
+      - name: Run comms gateway tests
+        run: |
+          pytest -q tests/test_comms_delivery_latency.py tests/test_comms_ratelimit.py -q
+      - name: Upload comms logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comms-delivery-logs
+          path: |
+            var/comms/logs/delivery/*.jsonl
+            /tmp/comms.log
+          if-no-files-found: ignore
+
+  chaos:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_INTEGRATION: '1'
+      NS: agentforge-staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt kubernetes pytest
+      - name: Check kubectl context (skip if not configured)
+        run: |
+          if ! command -v kubectl >/dev/null 2>&1; then
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+          fi
+          kubectl config current-context || exit 0
+      - name: Run chaos tests
+        run: |
+          # Proceed only if cluster reachable
+          if kubectl get ns "$NS" >/dev/null 2>&1; then
+            pytest -q tests/chaos || true
+          else
+            echo "Namespace $NS not found; skipping chaos tests";
+          fi
+      - name: Upload chaos artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-artifacts
+          path: var/artifacts/chaos/**
+          if-no-files-found: ignore

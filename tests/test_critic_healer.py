@@ -1,4 +1,5 @@
 import os
+import pytest
 from fastapi.testclient import TestClient
 
 os.environ["ENV"] = "test"
@@ -21,6 +22,7 @@ def fake_build_orchestrator(num_agents=2):
 api.build_orchestrator = fake_build_orchestrator
 client = TestClient(api.app)
 
+@pytest.mark.integration
 def test_submit_with_critic_healer_promotes_canary():
     req = {"goal": "Achieve desired result", "agents": 6}
     r = client.post("/v1/jobs/submit_ch", json=req)

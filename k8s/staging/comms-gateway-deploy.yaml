@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comms-gateway
+  namespace: agentforge-staging
+  labels:
+    app: comms-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comms-gateway
+  template:
+    metadata:
+      labels:
+        app: comms-gateway
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: gateway
+          image: agentforge:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python","-m","uvicorn","services.comms_gateway.app.main:app","--host","0.0.0.0","--port","8081"]
+          env:
+            - name: HOME
+              value: "/tmp"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: COMMS_DATA_DIR
+              value: "/app/var/comms"
+            - name: COMMS_CORS_ORIGINS
+              value: "http://localhost"
+            - name: COMMS_REQUIRE_MTLS
+              value: "1"
+            - name: COMMS_AES_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: comms-gateway-secret
+                  key: aes-key
+          ports:
+            - containerPort: 8081
+          volumeMounts:
+            - name: app-var
+              mountPath: /app/var
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: app-var
+          persistentVolumeClaim:
+            claimName: app-var-pvc
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comms-gateway
+  namespace: agentforge-staging
+  labels:
+    app: comms-gateway
+spec:
+  selector:
+    app: comms-gateway
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http

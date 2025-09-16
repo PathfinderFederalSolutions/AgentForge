@@ -5,16 +5,9 @@ import redis
 from dotenv import load_dotenv
 import concurrent.futures
 import numpy as np
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_cohere import ChatCohere
-from langchain_mistralai import ChatMistralAI
 from typing import List
 from router import DynamicRouter  # Import router from orchestrator
 from forge_types import Task, AgentContract  # Contracts (MemoryScope unused)
-from memory import EvoMemory  # Memory
 from observability import log_with_id, latency_hist, error_counter, token_counter  # Observability
 from agent_factory import AgentRegistry, AgentFactory, AgentSpec
 from memory_mesh import MemoryMesh
@@ -40,14 +33,53 @@ class ChatGrok:
 class Agent:
     def __init__(self, contract: AgentContract):
         self.contract = contract
-        self.router = DynamicRouter()  # Use shared router
-        self.memory = None  # Lazy init to avoid heavy deps until needed
+        self._router = None
+        self._llm_clients = {}
+        self.memory = None  # Ensure memory is always defined
+
+    def get_router(self):
+        if self._router is None:
+            from router import DynamicRouter
+            self._router = DynamicRouter()
+        return self._router
+
+    @property
+    def router(self):
+        if not hasattr(self, '_router') or self._router is None:
+            from router import DynamicRouter
+            self._router = DynamicRouter()
+        return self._router
+
+    def get_llm_client(self, provider: str):
+        if provider not in self._llm_clients:
+            if provider == "openai":
+                from langchain_openai import ChatOpenAI
+                self._llm_clients[provider] = ChatOpenAI()
+            elif provider == "anthropic":
+                from langchain_anthropic import ChatAnthropic
+                self._llm_clients[provider] = ChatAnthropic(model_name="claude-3-5-sonnet")
+            elif provider == "google":
+                try:
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    self._llm_clients[provider] = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+                except ImportError:
+                    self._llm_clients[provider] = object()  # fallback stub
+            elif provider == "cohere":
+                from langchain_cohere import ChatCohere
+                self._llm_clients[provider] = ChatCohere()
+            elif provider == "mistral":
+                from langchain_mistralai import ChatMistralAI
+                self._llm_clients[provider] = ChatMistralAI()
+            else:
+                raise ValueError(f"Unknown provider: {provider}")
+        return self._llm_clients[provider]
 
     def process(self, task: Task) -> str:
         start_time = time.time()
         try:
             # Lazy init memory
             if self.memory is None:
+                from memory import EvoMemory  # Lazy import to avoid slow startup
                 self.memory = EvoMemory()
             # Retrieve memories based on scopes
             memories = []
@@ -59,8 +91,8 @@ class Agent:
                 {"role": "user", "content": f"{task.description}\nMemories: {memories}"}
             ]
             tools = [{"name": tool, "description": "placeholder"} for tool in task.tools]  # Normalize if needed
-            target_model = self.contract.capabilities[0] if self.contract.capabilities else self.router.route(task)
-            resp = self.router.call(target_model, messages, tools, task_id=task.id)
+            target_model = self.contract.capabilities[0] if self.contract.capabilities else self.get_router().route(task)
+            resp = self.get_router().call(target_model, messages, tools, task_id=task.id)
             result = getattr(resp, 'content', str(resp))
             usage = len(result) // 4  # Approx tokens
             token_counter.labels(provider="agent", agent=self.contract.name).inc(usage)
@@ -117,22 +149,49 @@ class AgentSwarm:
         self.llms = {}
         oai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
         if oai_key:
-            self.llms["gpt-5"] = ChatOpenAI(model="gpt-5", api_key=oai_key)
+            self.llms["gpt-5"] = self.get_llm_client("openai")
         anth_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_KEY")
         if anth_key:
-            self.llms["claude-3-5"] = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=anth_key)
+            self.llms["claude-3-5"] = self.get_llm_client("anthropic")
         google_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_KEY")
         if google_key:
-            self.llms["gemini-1-5"] = ChatGoogleGenerativeAI(model="gemini-1.5-pro", api_key=google_key)
+            self.llms["gemini-1-5"] = self.get_llm_client("google")
         mistral_key = os.getenv("MISTRAL_API_KEY") or os.getenv("MISTRAL_KEY")
         if mistral_key:
-            self.llms["mistral-large"] = ChatMistralAI(model="mistral-large-latest", api_key=mistral_key)
+            self.llms["mistral-large"] = self.get_llm_client("mistral")
         cohere_key = os.getenv("COHERE_API_KEY") or os.getenv("CO_API_KEY")
         if cohere_key:
-            self.llms["cohere-command"] = ChatCohere(model="command-r-plus", api_key=cohere_key)
+            self.llms["cohere-command"] = self.get_llm_client("cohere")
         xai_key = os.getenv("XAI_API_KEY") or os.getenv("XAI_KEY")
         if xai_key:
             self.llms["grok-4"] = ChatGrok(model="grok-4", api_key=xai_key)
+
+    def get_llm_client(self, provider: str):
+        # Use the same logic as Agent.get_llm_client
+        if not hasattr(self, '_llm_clients'):
+            self._llm_clients = {}
+        if provider not in self._llm_clients:
+            if provider == "openai":
+                from langchain_openai import ChatOpenAI
+                self._llm_clients[provider] = ChatOpenAI()
+            elif provider == "anthropic":
+                from langchain_anthropic import ChatAnthropic
+                self._llm_clients[provider] = ChatAnthropic(model_name="claude-3-5-sonnet")
+            elif provider == "google":
+                try:
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    self._llm_clients[provider] = ChatGoogleGenerativeAI(model="gemini-1.5-pro")
+                except ImportError:
+                    self._llm_clients[provider] = object()  # fallback stub
+            elif provider == "cohere":
+                from langchain_cohere import ChatCohere
+                self._llm_clients[provider] = ChatCohere()
+            elif provider == "mistral":
+                from langchain_mistralai import ChatMistralAI
+                self._llm_clients[provider] = ChatMistralAI()
+            else:
+                raise ValueError(f"Unknown provider: {provider}")
+        return self._llm_clients[provider]
 
     def _init_mesh_and_factory(self) -> None:
         self.mesh = MemoryMesh(ns=os.getenv("AF_NAMESPACE", "global"))
@@ -267,14 +326,17 @@ class AgentSwarm:
 class MetaLearner:
     def __init__(self, num_agents=2):
         self.weights = np.ones(num_agents)
-        self.prompt = ChatPromptTemplate.from_template("Evaluate quality of: {output}. Score 0-1.")
         self.router = DynamicRouter()
+
+    def get_prompt_template(self):
+        from langchain_core.prompts import ChatPromptTemplate
+        return ChatPromptTemplate.from_template("Evaluate quality of: {output}. Score 0-1.")
 
     def learn(self, results: List[str], task: Task):
         start_time = time.time()
         scores = []
         for result in results:
-            messages = [{"role": "user", "content": self.prompt.format(output=result)}]
+            messages = [{"role": "user", "content": self.get_prompt_template().format(output=result)}]
             eval_response = self.router.call("claude-3-5", messages, task_id=task.id)
             try:
                 score = float(eval_response.content.split("Score: ")[-1].strip())

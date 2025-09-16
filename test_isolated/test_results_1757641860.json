@@ -1,0 +1,21 @@
+{
+  "timestamp": 1757641860,
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "timeouts": 0,
+    "skipped": 0,
+    "duration": 1.1689200401306152,
+    "integration_enabled": false
+  },
+  "results": {
+    "test_minimal.py": {
+      "status": "FAIL",
+      "duration": 1.16774320602417,
+      "output": "============================= test session starts ==============================\ncollected 3 items\n\ntest_minimal.py ..F                                                      [100%]\n\n=================================== FAILURES ===================================\n__________________________________ test_fails __________________________________\ntest_minimal.py:18: in test_fails\n    assert False, \"This test intentionally fails\"\nE   AssertionError: This test intentionally fails\nE   assert False\n=========================== short test summary info ============================\nFAILED test_minimal.py::test_fails - AssertionError: This test intentionally ...\n========================= 1 failed, 2 passed in 1.02s ==========================\n",
+      "error": "",
+      "traceback": ""
+    }
+  }
+}

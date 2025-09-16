@@ -1,0 +1,2 @@
+NAME          STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE   VOLUMEMODE
+app-var-pvc   Bound    pvc-80d9fa3a-a798-4265-80a0-555f2221997a   5Gi        RWO            standard       <unset>                 5d    Filesystem

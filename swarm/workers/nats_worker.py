@@ -27,10 +27,15 @@ from swarm.critic_healer import CriticHealer
 from swarm.bkg import store as bkg
 from swarm.memory_mesh import start_mesh_tasks
 
-try:
-    from orchestrator import build_orchestrator
-except Exception:
-    build_orchestrator = None
+# Lazy import to avoid heavy startup costs
+_build_orchestrator = None
+
+def _get_build_orchestrator():
+    global _build_orchestrator
+    if _build_orchestrator is None:
+        from orchestrator import build_orchestrator
+        _build_orchestrator = build_orchestrator
+    return _build_orchestrator
 
 try:
     from swarm.observability.costs import set_observability_context as _set_obs_ctx  # type: ignore
@@ -150,8 +155,7 @@ def _execute_mission(goal: str, agents: int):
         results = out.get("results", [])
         decision = out.get("decision", {})
     else:
-        if not build_orchestrator:
-            raise RuntimeError("Orchestrator unavailable")
+        build_orchestrator = _get_build_orchestrator()
         orch = build_orchestrator(num_agents=agents)
         results = orch.run_goal_sync(goal)
         decision = enforcer.post(goal=goal, results=results)

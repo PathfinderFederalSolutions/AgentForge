@@ -14,6 +14,7 @@ ENV = os.getenv('ENV','staging')
 RESULTS_SUBJECT_PREFIX = os.getenv('RESULTS_SUBJECT_PREFIX','swarm.results')
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_results_sink_jsonl_fallback(tmp_path, monkeypatch):
     # Basic connectivity check
     host_port = NATS_URL.replace('nats://','').split(',')[0]

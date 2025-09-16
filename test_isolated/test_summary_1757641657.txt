@@ -1,0 +1,10 @@
+Un-Staller Test Harness Results
+========================================
+
+Timestamp: Thu Sep 11 21:47:37 2025
+Integration Mode: DISABLED
+Total Tests: 1
+
+FAIL (1):
+  • test_minimal.py (0.1s)
+

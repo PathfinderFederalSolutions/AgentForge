@@ -15,6 +15,7 @@ NAME=${NAME:-nats-js-test}
 IMAGE=${IMAGE:-nats:2.10}
 PORT=${PORT:-4222}
 HTTP_PORT=${HTTP_PORT:-8222}
+CHAOS=${CHAOS:-0}
 
 cleanup() {
   docker rm -f "$NAME" >/dev/null 2>&1 || true
@@ -76,4 +77,10 @@ if [[ "${RUN_DRAIN:-0}" == "1" ]]; then
   else
     echo "python not found; skipping local_drain_test.py" >&2
   fi
+fi
+
+if [[ "$CHAOS" == "1" ]]; then
+  echo "[edge] Running chaos orchestration via e2e/scale-from-zero.sh"
+  CH_OUT="$(NS=${NS:-agentforge-staging} CHAOS=1 bash scripts/e2e/scale-from-zero.sh || true)"
+  echo "$CH_OUT" | sed -n '1,200p'
 fi

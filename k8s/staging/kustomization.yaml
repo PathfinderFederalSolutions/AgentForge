@@ -28,6 +28,11 @@ resources:
   - api-deploy.yaml
   - results-sink-deploy.yaml
   - keda-results-sink.yaml
+  - comms-gateway-deploy.yaml
+  - comms-gateway-ingress.yaml
+  - comms-gateway-secret.yaml
+  - tools-browser-deploy.yaml
+  - route-engine-ingress.yaml
 
 # Ensure the dashboard is referenced correctly
 configMapGenerator:

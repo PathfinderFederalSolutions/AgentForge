@@ -1,0 +1,3 @@
+[chaos] Installing Chaos Mesh kustomization
+[chaos] Waiting for chaos-controller-manager
+[chaos] Applying nats_restart (chaos/experiments/nats_restart.yaml)

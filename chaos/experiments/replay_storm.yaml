@@ -1,0 +1,32 @@
+# Simulate a burst of replays / redeliveries by injecting latency and error on workers' NATS connectivity.
+# This uses NetworkChaos on nats-worker to increase latency and packet loss to NATS, prompting replays.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: replay-storm
+  namespace: chaos-mesh
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - agentforge-staging
+    labelSelectors:
+      app: nats-worker
+  delay:
+    latency: "250ms"
+    correlation: "50"
+    jitter: "100ms"
+  loss:
+    loss: "10"
+    correlation: "30"
+  direction: to
+  target:
+    selector:
+      namespaces:
+        - agentforge-staging
+      labelSelectors:
+        app: nats
+    mode: all
+  duration: "3m"
+  # ...removed unsupported scheduler; apply triggers immediate execution

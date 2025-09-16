@@ -465,3 +465,44 @@ spec:
         - port: 53
           protocol: TCP
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: route-engine-netpol
+  namespace: agentforge-staging
+spec:
+  podSelector:
+    matchLabels:
+      app: route-engine
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agentforge-staging
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8010
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: nats
+      ports:
+        - protocol: TCP
+          port: 4222
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

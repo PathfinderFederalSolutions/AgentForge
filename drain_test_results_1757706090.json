@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-09-12T19:41:30.116801+00:00",
+  "configuration": {
+    "stream": "swarm_jobs",
+    "subject": "swarm.jobs.staging",
+    "consumer": "worker-staging",
+    "backlog_count": 30,
+    "runs": 2
+  },
+  "durations_minutes": [
+    0.19242510000864665,
+    20
+  ],
+  "statistics": {
+    "p95_minutes": 20,
+    "mean_minutes": 10.1,
+    "max_minutes": 20
+  },
+  "slo_evaluation": {
+    "objective_p95_minutes": 10,
+    "hard_cap_minutes": 20,
+    "p95_pass": false,
+    "cap_pass": true,
+    "overall_pass": false
+  }
+}

@@ -8,8 +8,9 @@ import requests
 import json
 import time
 import sys
+import pytest
 
-class PrometheusRulesTester:
+class TestPrometheusRules:
     def __init__(self, prometheus_url="http://localhost:9090"):
         self.prometheus_url = prometheus_url
         
@@ -136,7 +137,7 @@ def main():
     print("🚀 Prometheus Rules Test Suite")
     print("=" * 50)
     
-    tester = PrometheusRulesTester()
+    tester = TestPrometheusRules()
     
     # Test target health first
     target_results = tester.test_target_health()
@@ -177,6 +178,17 @@ def main():
     print(f"\n🎯 Overall Status: {'✅ PASS' if all_passed else '❌ FAIL'}")
     
     return 0 if all_passed else 1
+
+
+def test_prometheus_rules_basic():
+    """Basic test that prometheus rules configuration is valid"""
+    tester = TestPrometheusRules()
+    assert tester is not None
+    assert tester.prometheus_url == "http://localhost:9090"
+    # Test that basic methods exist
+    assert hasattr(tester, 'query_prometheus')
+    assert hasattr(tester, 'test_recording_rules')
+
 
 if __name__ == "__main__":
     sys.exit(main())

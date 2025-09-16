@@ -1,3 +1,6 @@
+import { ProcessingService } from './processingService';
+import { OutputService } from './outputService';
+
 export class IngestionService {
     constructor() {
         // Initialize any necessary properties or dependencies
@@ -11,10 +14,16 @@ export class IngestionService {
     async validateData(data: any): Promise<boolean> {
         // Logic to validate the ingested data
         // Return true if valid, false otherwise
+        return true;
     }
 
     async transformData(data: any): Promise<any> {
         // Logic to transform the ingested data into a suitable format
         // This could involve parsing, filtering, or enriching the data
+        return data;
     }
 }
+
+export const ingestionService = new IngestionService();
+export const processingService = new ProcessingService();
+export const outputService = new OutputService();

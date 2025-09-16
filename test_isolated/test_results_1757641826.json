@@ -1,0 +1,21 @@
+{
+  "timestamp": 1757641826,
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "timeouts": 0,
+    "skipped": 0,
+    "duration": 0.12963604927062988,
+    "integration_enabled": false
+  },
+  "results": {
+    "test_minimal.py": {
+      "status": "FAIL",
+      "duration": 0.12870001792907715,
+      "output": "============================= test session starts ==============================\ncollected 0 items\n\n============================ no tests ran in 0.00s =============================\n",
+      "error": "ERROR: file or directory not found: test_isolated/test_minimal.py\n\n",
+      "traceback": ""
+    }
+  }
+}

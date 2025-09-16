@@ -124,3 +124,39 @@ spec:
     - port: metrics
       path: /metrics
       interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: comms-gateway-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: comms-gateway
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: route-engine-servicemonitor
+  namespace: agentforge-staging
+  labels:
+    release: kube-prom
+spec:
+  selector:
+    matchLabels:
+      app: route-engine
+  namespaceSelector:
+    matchNames: ["agentforge-staging"]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

@@ -15,6 +15,8 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
+import argparse
+import time
 
 # --- Logging ---------------------------------------------------------------
 
@@ -79,6 +81,11 @@ EVIDENCE_KIND_JOB_ENQUEUED = "phase_job_enqueued"
 EVIDENCE_KIND_RESULT = "phase_job_result"
 EVIDENCE_KIND_SUMMARY = "phase_summary"
 
+PHASES_FILE = "plans/master_orchestration.yaml"
+JOBS_TOPIC = "swarm.jobs.staging"
+RESULTS_TOPIC = "swarm.results.staging"
+EVIDENCE_DIR = "/evidence"
+
 # --- Data models -----------------------------------------------------------
 
 class PhaseTask(BaseModel):
@@ -107,10 +114,12 @@ class PhaseRunner:
       - writes evidence records retrievable at /v1/evidence/{job_id}
     """
 
-    def __init__(self):
+    def __init__(self, phases_file=PHASES_FILE):
         self.nc = None
         self.js = None
         self._stop = asyncio.Event()
+        with open(phases_file) as f:
+            self.phases = yaml.safe_load(f)
 
     async def start(self):
         if get_nc_and_js is None:
@@ -253,6 +262,21 @@ class PhaseRunner:
             except Exception:
                 pass
 
+    def run_phase(self, phase_name):
+        phase = next((p for p in self.phases if p.get("name") == phase_name), None)
+        if not phase:
+            print(f"Phase {phase_name} not found.")
+            return
+        for job in ["render_phase", "apply_k8s", "run_tests"]:
+            job_id = f"{phase_name}_{job}_{int(time.time())}"
+            # publish_job, wait_for_result, attach_evidence must be implemented in worker_protocol
+            from services.orchestrator.app.worker_protocol import publish_job, wait_for_result, attach_evidence
+            publish_job(JOBS_TOPIC, job, job_id, phase)
+            result = wait_for_result(RESULTS_TOPIC, job_id)
+            for key in phase.get("evidence_keys", []):
+                attach_evidence(job_id, key, os.path.join(EVIDENCE_DIR, job_id))
+            print(f"Job {job} for phase {phase_name} complete. Result: {result}")
+
 # --- FastAPI app + endpoints ----------------------------------------------
 
 app = FastAPI(title="AgentForge Orchestrator", version="0.1.0")
@@ -303,8 +327,6 @@ async def _cli_main():
     CLI usage:
       python -m services.orchestrator.app.main --run-phase phase01_edge
     """
-    import argparse
-
     parser = argparse.ArgumentParser(description="AgentForge Phase Orchestrator")
     parser.add_argument("--run-phase", type=str, help="Phase name in master_orchestration.yaml")
     args = parser.parse_args()
@@ -323,7 +345,14 @@ async def _cli_main():
 
 if __name__ == "__main__":
     # If run directly, use CLI mode
-    try:
-        asyncio.run(_cli_main())
-    except KeyboardInterrupt:
-        pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run-phase", type=str, help="Run a specific orchestration phase")
+    args = parser.parse_args()
+    if args.run_phase:
+        runner = PhaseRunner()
+        runner.run_phase(args.run_phase)
+    else:
+        try:
+            asyncio.run(_cli_main())
+        except KeyboardInterrupt:
+            pass

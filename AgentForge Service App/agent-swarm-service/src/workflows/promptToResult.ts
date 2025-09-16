@@ -1,19 +1,31 @@
+import { ingestionService, processingService, outputService } from '../services/ingestionService';
+
+const ingestionServiceInstance = ingestionService;
+const processingServiceInstance = processingService;
+const outputServiceInstance = outputService;
+
 export const promptToResult = async (userPrompt: string): Promise<any> => {
     // Initialize services and agents
-    const ingestionService = new IngestionService();
-    const processingService = new ProcessingService();
-    const outputService = new OutputService();
+    const ingestionService = ingestionServiceInstance;
+    const processingService = processingServiceInstance;
+    const outputService = outputServiceInstance;
 
     try {
-        // Step 1: Ingest data based on the user prompt
-        const ingestedData = await ingestionService.ingest(userPrompt);
+        // Ingest data
+        await ingestionService.ingestData(userPrompt);
+        const isValid = await ingestionService.validateData(userPrompt);
+        if (!isValid) {
+            throw new Error('Invalid data');
+        }
+        const ingestedData = await ingestionService.transformData(userPrompt);
 
-        // Step 2: Process the ingested data
-        const processedData = await processingService.process(ingestedData);
+        // Process data
+        const processedData = processingService.processData(ingestedData);
+        const interpretedResults = processingService.interpretResults(processedData);
 
-        // Step 3: Generate the final result
-        const result = await outputService.formatOutput(processedData);
-
+        // Format and deliver output
+        const result = outputService.formatResult(interpretedResults);
+        outputService.deliverResult(result, 'default-destination');
         return result;
     } catch (error) {
         // Handle errors appropriately

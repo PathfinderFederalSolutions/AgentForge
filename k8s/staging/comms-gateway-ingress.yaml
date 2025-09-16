@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comms-gateway
+  namespace: agentforge-staging
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "comms-gateway"
+    # mTLS enforcement using nginx ingress
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "agentforge-staging/comms-client-ca"
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "2"
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+    # Forward subject DN header for enrollment
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header ssl-client-subject-dn $ssl_client_s_dn;
+      proxy_set_header ssl-client-cert $ssl_client_cert;
+spec:
+  tls:
+    - hosts: ["comms-gateway.local"]
+      secretName: comms-gateway-tls
+  rules:
+    - host: comms-gateway.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: comms-gateway
+                port:
+                  number: 8081

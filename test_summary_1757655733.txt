@@ -1,0 +1,60 @@
+Un-Staller Test Harness Results
+========================================
+
+Timestamp: Fri Sep 12 01:42:13 2025
+Integration Mode: DISABLED
+Total Tests: 49
+
+PASS (34):
+  • local_drain_test.py (0.3s)
+  • quick_test.py (0.1s)
+  • scripts/run_unstaller_tests.py (0.1s)
+  • simple_test.py (0.1s)
+  • test_alert_scenarios.py (0.2s)
+  • test_isolated/test_minimal.py (1.1s)
+  • test_minimal.py (1.1s)
+  • test_nats_connectivity.py (0.2s)
+  • test_prometheus_rules.py (0.2s)
+  • tests/test_anthropic.py (0.5s)
+  • tests/test_approval.py (12.1s)
+  • tests/test_canary_eval_latency_budget.py (11.9s)
+  • tests/test_canary_restoration.py (0.7s)
+  • tests/test_canary_router.py (0.6s)
+  • tests/test_capabilities.py (6.8s)
+  • tests/test_cost_accounting.py (0.4s)
+  • tests/test_drift.py (0.5s)
+  • tests/test_e2e_policy.py (12.4s)
+  • tests/test_evidence_bundle.py (12.4s)
+  • tests/test_fusion_latency_budget.py (12.6s)
+  • tests/test_fusion_pipeline.py (12.4s)
+  • tests/test_fusion_roc_det.py (0.5s)
+  • tests/test_geojson_schema.py (0.3s)
+  • tests/test_hf.py (0.6s)
+  • tests/test_imports.py (12.1s)
+  • tests/test_memory.py (3.0s)
+  • tests/test_memory_mesh.py (0.4s)
+  • tests/test_metrics.py (11.9s)
+  • tests/test_observability_context.py (12.0s)
+  • tests/test_planner.py (6.9s)
+  • tests/test_reviewer.py (0.6s)
+  • tests/test_router.py (12.2s)
+  • tests/test_span_attributes.py (0.4s)
+  • tests/test_tool_executor_idempotency.py (0.5s)
+
+FAIL (15):
+  • test_jetstream_metrics.py (0.2s)
+  • tests/test_api_job_status.py (12.6s)
+  • tests/test_async_dispatch.py (12.4s)
+  • tests/test_bearer_security.py (12.0s)
+  • tests/test_critic_healer.py (12.1s)
+  • tests/test_edge_disconnect_reconnect.py (0.3s)
+  • tests/test_edge_store_forward.py (0.3s)
+  • tests/test_memory_store.py (0.3s)
+  • tests/test_results_sink.py (0.3s)
+  • tests/test_sse_ws_security.py (12.4s)
+  • tests/test_sse_ws_stream.py (12.1s)
+  • tests/test_tool_executor_dlq.py (0.3s)
+  • tests/test_tool_executor_operation_key.py (0.2s)
+  • tests/test_tool_executor_retry.py (0.3s)
+  • tests/test_tool_executor_retry_deterministic.py (0.2s)
+

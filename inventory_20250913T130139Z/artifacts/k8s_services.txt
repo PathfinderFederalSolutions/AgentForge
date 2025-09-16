@@ -1,0 +1,9 @@
+NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE     SELECTOR
+hitl-ui                    ClusterIP   10.96.90.20     <none>        8080/TCP            8d      app=hitl-ui
+nats                       ClusterIP   10.96.148.235   <none>        4222/TCP,8222/TCP   5d      app=nats
+nats-prometheus-exporter   ClusterIP   10.96.188.48    <none>        7777/TCP            3d16h   app=nats-prom-exporter
+orchestrator               ClusterIP   10.96.16.30     <none>        80/TCP              6d10h   app=orchestrator
+otel-collector             ClusterIP   10.96.177.51    <none>        4318/TCP            6d9h    app=otel-collector
+pgvector                   ClusterIP   10.96.50.191    <none>        5432/TCP            8d      app=pgvector
+temporalite                ClusterIP   10.96.109.15    <none>        7233/TCP            8d      app=temporalite
+tool-executor              ClusterIP   10.96.118.140   <none>        9000/TCP            6d10h   app=tool-executor

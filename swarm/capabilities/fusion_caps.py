@@ -13,7 +13,8 @@ from swarm.fusion.conformal import conformal_validate as _conformal_validate
     desc="Precision-weighted EO/IR Gaussian fusion (with covariance)",
     meta={"cost": 1, "latency_ms": 5, "throughput": "high", "trust": 0.9, "modalities": ["eo", "ir"], "sla": {"max_latency_ms": 100}},
 )
-def cap_bayesian_fusion(eo: List[float], ir: List[float]) -> Dict[str, Any]:
+def cap_bayesian_fusion(eo: List[float], ir: List[float], **kwargs) -> Dict[str, Any]:
+    # Accept and ignore extra kwargs for compatibility
     eo_arr, ir_arr = ingest_streams(eo, ir)
     mu, var = bayesian_fuse(eo_arr, ir_arr)
     return {"mu": mu, "var": var, "covariance": [[var]]}
@@ -25,7 +26,8 @@ def cap_bayesian_fusion(eo: List[float], ir: List[float]) -> Dict[str, Any]:
     desc="Empirical conformal interval from residuals",
     meta={"cost": 1, "latency_ms": 2, "throughput": "high", "trust": 0.95, "modalities": ["numeric"], "sla": {"max_latency_ms": 50}},
 )
-def cap_conformal_validate(residuals: List[float], alpha: float = 0.1) -> Dict[str, float]:
+def cap_conformal_validate(residuals: List[float], alpha: float = 0.1, **kwargs) -> Dict[str, float]:
+    # Accept and ignore extra kwargs for compatibility
     lo, hi = _conformal_validate(residuals, alpha)
     return {"lo": lo, "hi": hi}
 
@@ -36,7 +38,8 @@ def cap_conformal_validate(residuals: List[float], alpha: float = 0.1) -> Dict[s
     desc="EO/IR fusion + conformal calibration + persistence of fused track with evidence chain",
     meta={"cost": 2, "latency_ms": 10, "throughput": "med", "trust": 0.9, "modalities": ["eo","ir"], "sla": {"max_latency_ms": 150}},
 )
-def cap_fuse_and_persist_track(eo: List[float], ir: List[float], alpha: float = 0.1) -> Dict[str, Any]:
+def cap_fuse_and_persist_track(eo: List[float], ir: List[float], alpha: float = 0.1, **kwargs) -> Dict[str, Any]:
+    # Accept and ignore extra kwargs for compatibility
     eo_arr, ir_arr = ingest_streams(eo, ir)
     evidence = build_evidence_chain(eo, ir)
     fused = fuse_calibrate_persist(eo_arr, ir_arr, evidence=evidence, alpha=alpha)

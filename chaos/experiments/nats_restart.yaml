@@ -1,0 +1,21 @@
+# Chaos Mesh experiment to restart the NATS pod in staging by killing one pod.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: nats-restart
+  namespace: chaos-mesh
+  labels:
+    app.kubernetes.io/part-of: agentforge
+    app.kubernetes.io/component: chaos
+spec:
+  action: pod-kill
+  mode: one
+  duration: "45s"
+  selector:
+    namespaces:
+      - agentforge-staging
+    labelSelectors:
+      app: nats
+  gracePeriod: 0
+  remoteCluster: ""
+  # ...removed unsupported scheduler; apply triggers immediate execution

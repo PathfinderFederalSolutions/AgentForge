@@ -5,7 +5,7 @@ import { ProcessingService } from './services/processingService';
 import { OutputService } from './services/outputService';
 import { Coordinator } from './agents/coordinator';
 import { Orchestrator } from './orchestrator/orchestrator';
-import { logger } from './utils/logger';
+import { logInfo, logError } from './utils/logger';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(json());
 app.use((req, res, next) => {
-    logger.info(`Received request: ${req.method} ${req.url}`);
+    logInfo(`Received request: ${req.method} ${req.url}`);
     next();
 });
 
@@ -21,21 +21,23 @@ app.use((req, res, next) => {
 const ingestionService = new IngestionService();
 const processingService = new ProcessingService();
 const outputService = new OutputService();
-const coordinator = new Coordinator(ingestionService, processingService, outputService);
-const orchestrator = new Orchestrator(coordinator);
+const coordinator = new Coordinator([ingestionService, processingService, outputService]);
+const orchestrator = new Orchestrator([coordinator]);
 
 // Routes
 app.post('/process', async (req, res) => {
     try {
         const result = await orchestrator.processRequest(req.body);
         res.status(200).json(result);
-    } catch (error) {
-        logger.error(`Error processing request: ${error.message}`);
+    } catch (error: any) {
+        logError(`Error processing request: ${error.message ?? error}`);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
 // Start the server
 app.listen(port, () => {
-    logger.info(`Agent swarm service listening on port ${port}`);
+    logInfo(`Agent swarm service listening on port ${port}`);
 });
+
+export = app;

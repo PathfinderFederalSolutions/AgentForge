@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'ws://localhost:3001',
         ws: true,
         changeOrigin: true
+      },
+      '/route-engine': {
+        target: 'http://localhost:8010',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/route-engine/, '')
       }
     }
   },

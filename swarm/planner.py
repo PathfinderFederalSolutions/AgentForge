@@ -100,6 +100,10 @@ class Executor:
                 if step.capability == "bayesian_fusion":
                     step.args.setdefault("eo", [1, 2, 3, 4, 5])
                     step.args.setdefault("ir", [2, 3, 4, 5, 6])
+                elif step.capability == "fuse_and_persist_track":
+                    step.args.setdefault("eo", [0.1, 0.2, 0.25, 0.3, 0.5, 0.55, 0.6])
+                    step.args.setdefault("ir", [0.05, 0.15, 0.22, 0.28, 0.52, 0.58, 0.62])
+                    step.args.setdefault("alpha", 0.1)
                 elif step.capability == "conformal_validate":
                     step.args.setdefault("residuals", [0.1, -0.2, 0.05, 0.0])
                     step.args.setdefault("alpha", 0.1)

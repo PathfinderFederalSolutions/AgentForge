@@ -3,6 +3,11 @@ from collections import OrderedDict
 from nats.aio.client import Client as NATS
 from nats.js import JetStreamContext
 
+# Conditional stub import for testing
+if os.getenv("USE_NATS_STUBS") == "1":
+    from services.orchestrator.app.nats_client_stub import get_nc_and_js  # noqa: F401
+    # The real implementation should be below; this import simply overrides get_nc_and_js when env is set.
+
 # Metrics (graceful if prometheus_client not installed)
 try:  # pragma: no cover
     from prometheus_client import Gauge  # type: ignore

@@ -1,0 +1,336 @@
+{
+  "timestamp": 1757641371,
+  "summary": {
+    "total": 46,
+    "passed": 0,
+    "failed": 46,
+    "timeouts": 0,
+    "skipped": 0,
+    "duration": 11.26495885848999,
+    "integration_enabled": false
+  },
+  "results": {
+    "local_drain_test.py": {
+      "status": "FAIL",
+      "duration": 0.10863780975341797,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "scripts/run_unstaller_tests.py": {
+      "status": "FAIL",
+      "duration": 0.09836602210998535,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "test_alert_scenarios.py": {
+      "status": "FAIL",
+      "duration": 0.09404802322387695,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "test_jetstream_metrics.py": {
+      "status": "FAIL",
+      "duration": 0.09385490417480469,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "test_nats_connectivity.py": {
+      "status": "FAIL",
+      "duration": 0.09434700012207031,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "test_prometheus_rules.py": {
+      "status": "FAIL",
+      "duration": 0.09196305274963379,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/conftest.py": {
+      "status": "FAIL",
+      "duration": 0.20216012001037598,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_anthropic.py": {
+      "status": "FAIL",
+      "duration": 0.18879103660583496,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_api_job_status.py": {
+      "status": "FAIL",
+      "duration": 0.2025008201599121,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_approval.py": {
+      "status": "FAIL",
+      "duration": 0.19467377662658691,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_async_dispatch.py": {
+      "status": "FAIL",
+      "duration": 0.19336605072021484,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_bearer_security.py": {
+      "status": "FAIL",
+      "duration": 0.3068060874938965,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_canary_eval_latency_budget.py": {
+      "status": "FAIL",
+      "duration": 0.19613003730773926,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_canary_restoration.py": {
+      "status": "FAIL",
+      "duration": 0.20789384841918945,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_canary_router.py": {
+      "status": "FAIL",
+      "duration": 0.2420041561126709,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_capabilities.py": {
+      "status": "FAIL",
+      "duration": 0.1987450122833252,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_cost_accounting.py": {
+      "status": "FAIL",
+      "duration": 0.20317792892456055,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_critic_healer.py": {
+      "status": "FAIL",
+      "duration": 0.18826889991760254,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_drift.py": {
+      "status": "FAIL",
+      "duration": 0.21993303298950195,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_e2e_policy.py": {
+      "status": "FAIL",
+      "duration": 0.20374202728271484,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_edge_disconnect_reconnect.py": {
+      "status": "FAIL",
+      "duration": 0.19531893730163574,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_edge_store_forward.py": {
+      "status": "FAIL",
+      "duration": 0.20878911018371582,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_evidence_bundle.py": {
+      "status": "FAIL",
+      "duration": 0.19569683074951172,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_fusion_latency_budget.py": {
+      "status": "FAIL",
+      "duration": 0.18407201766967773,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_fusion_pipeline.py": {
+      "status": "FAIL",
+      "duration": 0.20409011840820312,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_fusion_roc_det.py": {
+      "status": "FAIL",
+      "duration": 0.18830108642578125,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_geojson_schema.py": {
+      "status": "FAIL",
+      "duration": 0.20842885971069336,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_hf.py": {
+      "status": "FAIL",
+      "duration": 0.19739198684692383,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_imports.py": {
+      "status": "FAIL",
+      "duration": 0.20505690574645996,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_memory.py": {
+      "status": "FAIL",
+      "duration": 0.21419811248779297,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_memory_mesh.py": {
+      "status": "FAIL",
+      "duration": 0.266970157623291,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_memory_store.py": {
+      "status": "FAIL",
+      "duration": 0.19617080688476562,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_metrics.py": {
+      "status": "FAIL",
+      "duration": 0.1877460479736328,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_observability_context.py": {
+      "status": "FAIL",
+      "duration": 0.19926118850708008,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_planner.py": {
+      "status": "FAIL",
+      "duration": 0.37476611137390137,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_results_sink.py": {
+      "status": "FAIL",
+      "duration": 0.24869465827941895,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_reviewer.py": {
+      "status": "FAIL",
+      "duration": 0.19680500030517578,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_router.py": {
+      "status": "FAIL",
+      "duration": 0.21869111061096191,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_span_attributes.py": {
+      "status": "FAIL",
+      "duration": 0.2142481803894043,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_sse_ws_security.py": {
+      "status": "FAIL",
+      "duration": 0.2012639045715332,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_sse_ws_stream.py": {
+      "status": "FAIL",
+      "duration": 0.22148680686950684,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_tool_executor_dlq.py": {
+      "status": "FAIL",
+      "duration": 0.19447875022888184,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_tool_executor_idempotency.py": {
+      "status": "FAIL",
+      "duration": 0.19611811637878418,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_tool_executor_operation_key.py": {
+      "status": "FAIL",
+      "duration": 0.20768165588378906,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_tool_executor_retry.py": {
+      "status": "FAIL",
+      "duration": 0.20016813278198242,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    },
+    "tests/test_tool_executor_retry_deterministic.py": {
+      "status": "FAIL",
+      "duration": 0.19298815727233887,
+      "output": "",
+      "error": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --timeout=30 --timeout-method=thread\n  inifile: /Users/baileymahoney/AgentForge/pytest.ini\n  rootdir: /Users/baileymahoney/AgentForge\n\n",
+      "traceback": ""
+    }
+  }
+}

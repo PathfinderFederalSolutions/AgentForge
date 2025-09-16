@@ -25,4 +25,18 @@ export class Orchestrator {
         console.log("Managing workflows...");
         // Implement workflow management logic here
     }
+
+    public async processRequest(data: any): Promise<any> {
+        // Example: coordinate tasks and gather results from all agents
+        this.agents.forEach(agent => {
+            if (typeof agent.coordinateTasks === 'function') {
+                agent.coordinateTasks(data);
+            }
+        });
+        // Gather results from all agents
+        const results = this.agents.map(agent =>
+            typeof agent.gatherResults === 'function' ? agent.gatherResults() : null
+        );
+        return { results };
+    }
 }

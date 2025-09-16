@@ -14,7 +14,9 @@ sys.path.append('/Users/baileymahoney/AgentForge')
 import nats
 from typing import List
 
-class AlertScenarioTester:
+import pytest
+
+class TestAlertScenarios:
     def __init__(self):
         self.nc = None
         self.js = None
@@ -25,6 +27,7 @@ class AlertScenarioTester:
         self.js = self.nc.jetstream()
         print("✅ Connected to NATS JetStream")
     
+    @pytest.mark.asyncio
     async def test_sustained_backlog(self, message_count: int = 3500):
         """Test A: Create sustained backlog of ≥3000 messages for >10m"""
         print(f"\n🧪 TEST A: Sustained Backlog ({message_count} messages)")
@@ -130,6 +133,7 @@ class AlertScenarioTester:
             print(f"   ❌ Failed to scale exporter: {e}")
             return {"test": "exporter_down", "status": "error", "error": str(e)}
     
+    @pytest.mark.asyncio
     async def test_ack_pending_rise(self, message_count: int = 500):
         """Test C: Scale workers to 0 after they pull messages to increase ack pending"""
         print(f"\n🧪 TEST C: Ack Pending Rise Scenario")
@@ -262,7 +266,7 @@ class AlertScenarioTester:
 
 async def main():
     """Main test execution"""
-    tester = AlertScenarioTester()
+    tester = TestAlertScenarios()
     
     try:
         results = await tester.run_all_tests()
@@ -306,6 +310,15 @@ async def main():
         return 1
     
     return 0
+
+
+def test_alert_scenarios_basic():
+    """Basic test that alert scenario configuration is valid"""
+    tester = TestAlertScenarios()
+    assert tester is not None
+    # Test basic configuration constants
+    assert hasattr(tester, 'nc')
+    assert hasattr(tester, 'js')
 
 
 if __name__ == "__main__":

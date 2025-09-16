@@ -1,0 +1,105 @@
+{
+  "timestamp": 1757654018,
+  "summary": {
+    "total": 13,
+    "passed": 10,
+    "failed": 3,
+    "timeouts": 0,
+    "skipped": 0,
+    "duration": 26.166428089141846,
+    "integration_enabled": false
+  },
+  "results": {
+    "local_drain_test.py": {
+      "status": "PASS",
+      "duration": 0.2635021209716797,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\nlocal_drain_test.py .                                                    [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.13s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "quick_test.py": {
+      "status": "PASS",
+      "duration": 0.11202883720397949,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\nquick_test.py .                                                          [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.01s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "scripts/run_unstaller_tests.py": {
+      "status": "PASS",
+      "duration": 0.11200881004333496,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\nscripts/run_unstaller_tests.py .                                         [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.01s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "simple_test.py": {
+      "status": "PASS",
+      "duration": 0.1121208667755127,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\nsimple_test.py .                                                         [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.01s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_alert_scenarios.py": {
+      "status": "PASS",
+      "duration": 0.23338890075683594,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\ntest_alert_scenarios.py .                                                [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\ntest_alert_scenarios.py:19\n  /Users/baileymahoney/AgentForge/test_alert_scenarios.py:19: PytestCollectionWarning: cannot collect test class 'TestAlertScenarios' because it has a __init__ constructor (from: test_alert_scenarios.py)\n    class TestAlertScenarios:\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n======================== 1 passed, 2 warnings in 0.09s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_isolated/test_minimal.py": {
+      "status": "PASS",
+      "duration": 1.1470258235931396,
+      "output": "============================= test session starts ==============================\ncollected 3 items\n\ntest_isolated/test_minimal.py ..s                                        [100%]\n\n=========================== short test summary info ============================\nSKIPPED [1] test_isolated/test_minimal.py:17: Intentional failure test - skipped for harness validation\n========================= 2 passed, 1 skipped in 1.01s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_jetstream_metrics.py": {
+      "status": "FAIL",
+      "duration": 0.25455808639526367,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\ntest_jetstream_metrics.py F                                              [100%]\n\n=================================== FAILURES ===================================\n__________________________ test_jetstream_operations ___________________________\nasync def functions are not natively supported.\nYou need to install a suitable plugin for your async framework, for example:\n  - anyio\n  - pytest-asyncio\n  - pytest-tornasync\n  - pytest-trio\n  - pytest-twisted\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n=========================== short test summary info ============================\nFAILED test_jetstream_metrics.py::test_jetstream_operations - Failed: async d...\n========================= 1 failed, 1 warning in 0.10s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_minimal.py": {
+      "status": "PASS",
+      "duration": 1.1947240829467773,
+      "output": "============================= test session starts ==============================\ncollected 3 items\n\ntest_minimal.py ..s                                                      [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n1.00s call     test_minimal.py::test_slow_pass\n\n(7 durations < 0.005s hidden.  Use -vv to show these durations.)\n=========================== short test summary info ============================\nSKIPPED [1] test_minimal.py:17: Intentional failure test - skipped for harness validation\n=================== 2 passed, 1 skipped, 1 warning in 1.01s ====================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_nats_connectivity.py": {
+      "status": "PASS",
+      "duration": 0.21274924278259277,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\ntest_nats_connectivity.py .                                              [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.06s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "test_prometheus_rules.py": {
+      "status": "PASS",
+      "duration": 0.17354607582092285,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\ntest_prometheus_rules.py .                                               [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\ntest_prometheus_rules.py:13\n  /Users/baileymahoney/AgentForge/test_prometheus_rules.py:13: PytestCollectionWarning: cannot collect test class 'TestPrometheusRules' because it has a __init__ constructor (from: test_prometheus_rules.py)\n    class TestPrometheusRules:\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n\n(3 durations < 0.005s hidden.  Use -vv to show these durations.)\n======================== 1 passed, 2 warnings in 0.05s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "tests/conftest.py": {
+      "status": "FAIL",
+      "duration": 0.23456788063049316,
+      "output": "============================= test session starts ==============================\ncollected 0 items\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================== 1 warning in 0.01s ==============================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "tests/test_anthropic.py": {
+      "status": "PASS",
+      "duration": 0.5655019283294678,
+      "output": "============================= test session starts ==============================\ncollected 1 item\n\ntests/test_anthropic.py .                                                [100%]\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n============================= slowest 25 durations =============================\n0.03s call     tests/test_anthropic.py::test_anthropic_client_constructs\n\n(2 durations < 0.005s hidden.  Use -vv to show these durations.)\n========================= 1 passed, 1 warning in 0.30s =========================\n",
+      "error": "",
+      "traceback": ""
+    },
+    "tests/test_api_job_status.py": {
+      "status": "FAIL",
+      "duration": 13.157777786254883,
+      "output": "============================= test session starts ==============================\ncollected 1 item / 1 deselected / 0 selected\n\n=============================== warnings summary ===============================\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/_pytest/config/__init__.py:1474: PytestConfigWarning: Unknown config option: asyncio_mode\n  \n    self._warn_or_fail_if_strict(f\"Unknown config option: {key}\\n\")\n\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/pydantic/v1/typing.py:68: 16 warnings\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/pydantic/v1/typing.py:68: DeprecationWarning: Failing to pass a value to the 'type_params' parameter of 'typing.ForwardRef._evaluate' is deprecated, as it leads to incorrect behaviour when calling typing.ForwardRef._evaluate on a stringified annotation that references a PEP 695 type parameter. It will be disallowed in Python 3.15.\n    return cast(Any, type_)._evaluate(globalns, localns, recursive_guard=set())\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.MessageMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.ScalarMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.\n\nswarm/api/main.py:549\n  /Users/baileymahoney/AgentForge/swarm/api/main.py:549: DeprecationWarning: \n          on_event is deprecated, use lifespan event handlers instead.\n  \n          Read more about it in the\n          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).\n          \n    @app.on_event(\"startup\")\n\n../.pyenv/versions/3.13.0/lib/python3.13/site-packages/fastapi/applications.py:4495\n  /Users/baileymahoney/.pyenv/versions/3.13.0/lib/python3.13/site-packages/fastapi/applications.py:4495: DeprecationWarning: \n          on_event is deprecated, use lifespan event handlers instead.\n  \n          Read more about it in the\n          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).\n          \n    return self.router.on_event(event_type)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n===================== 1 deselected, 21 warnings in 11.45s ======================\n",
+      "error": "",
+      "traceback": ""
+    }
+  }
+}

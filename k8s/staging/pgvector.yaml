@@ -30,6 +30,7 @@ spec:
       containers:
         - name: postgres
           image: ankane/pgvector:pg16
+          imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:

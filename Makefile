@@ -1,4 +1,4 @@
-.PHONY: build kind-load deploy logs smoke trivy bandit sbom verify deploy-verify lint-yaml codacy
+.PHONY: build kind-load deploy logs smoke trivy bandit sbom verify deploy-verify lint-yaml codacy test test-integration test-unstaller
 
 IMAGE ?= agentforge:latest
 
@@ -42,3 +42,14 @@ codacy:
 	else \
 	  echo "codacy-analysis-cli not installed; skipping"; \
 	fi
+
+# Un-Staller Test Harness - Guarantees tests never hang
+test:
+	@echo "Running Un-Staller Test Harness (mocked dependencies)..."
+	bash scripts/run_unstaller_tests.sh
+
+test-integration:
+	@echo "Running Un-Staller Test Harness (live integration tests)..."
+	INTEGRATION=1 bash scripts/run_unstaller_tests.sh
+
+test-unstaller: test

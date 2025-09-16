@@ -99,6 +99,19 @@ class Orchestrator:
 
     def _seed_args(self, scope: str, goal: str, step: PlanStep) -> Dict[str, Any]:
         args: Dict[str, Any] = dict(step.args)
+        
+        # Always provide safe defaults for known capabilities
+        if step.capability == "bayesian_fusion":
+            args.setdefault("eo", [1, 2, 3, 4, 5])
+            args.setdefault("ir", [2, 3, 4, 5, 6])
+        elif step.capability == "fuse_and_persist_track":
+            args.setdefault("eo", [0.1, 0.2, 0.25, 0.3, 0.5, 0.55, 0.6])
+            args.setdefault("ir", [0.05, 0.15, 0.22, 0.28, 0.52, 0.58, 0.62])
+            args.setdefault("alpha", 0.1)
+        elif step.capability == "conformal_validate":
+            args.setdefault("residuals", [0.1, -0.2, 0.05, 0.0])
+            args.setdefault("alpha", 0.1)
+        
         # Vector-assisted retrieval to seed capability inputs
         if vector_service:
             try:
@@ -108,14 +121,6 @@ class Orchestrator:
                     args.setdefault("context_snippets", [str(h)[:256] for h in list(hits)[:3]])
                 except Exception:
                     pass
-                # Simple heuristic: defaults for specific capabilities
-                if step.capability == "bayesian_fusion":
-                    # Expect eo/ir numeric lists; fallback to synthetic
-                    args.setdefault("eo", [1, 2, 3, 4, 5])
-                    args.setdefault("ir", [2, 3, 4, 5, 6])
-                elif step.capability == "conformal_validate":
-                    args.setdefault("residuals", [0.1, -0.2, 0.05, 0.0])
-                    args.setdefault("alpha", 0.1)
             except Exception:
                 pass
         return args

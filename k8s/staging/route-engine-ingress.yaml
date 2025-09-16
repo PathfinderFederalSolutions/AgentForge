@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: route-engine
+  namespace: agentforge-staging
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /route-engine(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: route-engine
+                port:
+                  number: 80

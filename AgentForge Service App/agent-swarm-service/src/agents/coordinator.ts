@@ -8,12 +8,14 @@ export class Coordinator {
     public coordinateTasks(data: any): void {
         // Logic to distribute tasks among agents
         this.agents.forEach(agent => {
-            agent.processData(data);
+            if (typeof agent.processData === 'function') {
+                agent.processData(data);
+            }
         });
     }
 
     public gatherResults(): any {
         // Logic to gather results from agents
-        return this.agents.map(agent => agent.getResult());
+        return this.agents.map(agent => (typeof agent.getData === 'function' ? agent.getData() : null));
     }
 }

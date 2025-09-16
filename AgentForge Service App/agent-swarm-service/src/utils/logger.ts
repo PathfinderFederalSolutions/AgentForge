@@ -4,8 +4,9 @@ const logger = createLogger({
     level: 'info',
     format: format.combine(
         format.timestamp(),
-        format.printf(({ timestamp, level, message }) => {
-            return `${timestamp} [${level}]: ${message}`;
+        format.printf((info) => {
+            // info: TransformableInfo, always has timestamp, level, message
+            return `${info.timestamp} [${info.level}]: ${info.message}`;
         })
     ),
     transports: [
@@ -26,3 +27,5 @@ export const logError = (message: string) => {
 export const logDebug = (message: string) => {
     logger.debug(message);
 };
+
+export { logger };

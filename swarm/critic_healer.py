@@ -6,10 +6,15 @@ from swarm.enforcement import enforcer
 from swarm.bkg import store as bkg
 from swarm.canary.router import CanaryRouter
 
-try:
-    from orchestrator import build_orchestrator
-except Exception:
-    build_orchestrator = None
+# Lazy import to avoid heavy startup costs
+_build_orchestrator = None
+
+def _get_build_orchestrator():
+    global _build_orchestrator
+    if _build_orchestrator is None:
+        from orchestrator import build_orchestrator
+        _build_orchestrator = build_orchestrator
+    return _build_orchestrator
 
 class CriticHealer:
     def __init__(self, max_rounds: int = 3, canary_fraction: float = 0.2) -> None:
@@ -17,8 +22,7 @@ class CriticHealer:
         self.router = CanaryRouter(canary_fraction=canary_fraction)
 
     def _run(self, goal: str, agents: int) -> Tuple[List[dict], Dict[str, Any]]:
-        if not build_orchestrator:
-            raise RuntimeError("orchestrator unavailable")
+        build_orchestrator = _get_build_orchestrator()
         orch = build_orchestrator(num_agents=agents)
         results = orch.run_goal_sync(goal)
         decision = enforcer.post(goal=goal, results=results)

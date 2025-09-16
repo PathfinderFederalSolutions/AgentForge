@@ -4,7 +4,7 @@ import os
 import pytest
 import pytest_asyncio
 
-pytestmark = pytest.mark.asyncio
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 
 EDGE_ENV = {
     "EDGE_MODE": "1",

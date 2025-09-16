@@ -4,6 +4,7 @@ import os
 import asyncio
 import time
 import json
+import contextlib
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi import Request, Body
 from fastapi.responses import StreamingResponse
@@ -281,7 +282,43 @@ async def lifespan(app: FastAPI):
             await ensure_streams()
         except Exception:
             pass
-    yield
+    # Start distributed memory snapshot background tasks (migrated from deprecated startup event)
+    snapshot_tasks: list[asyncio.Task] = []
+    try:
+        if DistMemoryMesh and start_snapshot_task:
+            for scope in (
+                "global",
+                f"project:{settings.env}",
+            ):
+                try:
+                    mesh = DistMemoryMesh(scope=scope, actor="api")
+                    # start_snapshot_task returns an asyncio.Task in our implementation
+                    t = start_snapshot_task(mesh, interval_sec=60)
+                    # Some implementations may return None; guard accordingly
+                    if isinstance(t, asyncio.Task):
+                        snapshot_tasks.append(t)
+                except Exception:
+                    pass
+    except Exception:
+        # Best-effort: do not fail startup if snapshot init fails
+        pass
+    # Yield to serve requests
+    try:
+        yield
+    finally:
+        # Cancel snapshot tasks on shutdown
+        for t in snapshot_tasks:
+            try:
+                t.cancel()
+            except Exception:
+                pass
+        # Optionally wait for cancellations to settle
+        for t in snapshot_tasks:
+            try:
+                with contextlib.suppress(Exception):
+                    await t
+            except Exception:
+                pass
 
 
 app = FastAPI(title="AgentForge Swarm Gateway", version="0.3.0", lifespan=lifespan)
@@ -546,18 +583,6 @@ def analyze_artifact(req: AnalyzeRequest):
     return JobResponse(goal=goal, results=list(results), decision=decision)
 
 
-@app.on_event("startup")
-async def _maybe_start_mesh_snapshots():
-    if not DistMemoryMesh or not start_snapshot_task:
-        return
-    for scope in (
-        "global",
-        f"project:{settings.env}",
-    ):
-        mesh = DistMemoryMesh(scope=scope, actor="api")
-        start_snapshot_task(mesh, interval_sec=60)
-
-
 @app.post("/job/sync", response_model=JobResponse)
 async def run_job_sync(req: JobRequest):
     goal = _format_goal_with_artifacts(req.goal, req.artifacts)
@@ -770,7 +795,7 @@ def _get_client_ip(headers, fallback_host: str | None) -> str:
         pass
     return fallback_host or "unknown"
 
-async def _sse_iter(client_id: str):
+async def _sse_iter(client_id: str, ip: str):
     global _current_clients
     q = _events.subscribe()
     try:
@@ -812,31 +837,46 @@ async def _sse_iter(client_id: str):
     finally:
         _events.unsubscribe(q)
         _current_clients = max(0, _current_clients - 1)
+        # Decrement per-IP count for SSE, mirroring WS cleanup
+        try:
+            _ip_conn_counts[ip] = max(0, _ip_conn_counts.get(ip, 0) - 1)
+        except Exception:
+            pass
 
-@app.get("/events/stream")
-async def events_stream(request: Request):
-    global _current_clients
-    # Optional mTLS requirement enforced via ingress-provided headers
+def _check_stream_auth(headers) -> None:
+    # Enforce optional mTLS and bearer token auth based on env
     if os.getenv("TACTICAL_REQUIRE_CLIENT_CERT", "0").lower() in {"1","true","yes","on"}:
-        if not _client_verified(request.headers):
+        if not _client_verified(headers):
             raise HTTPException(status_code=403, detail="client_cert_required")
-    # Optional bearer requirement
-    if _bearer_required() and not _bearer_verified(request.headers):
+    if _bearer_required() and not _bearer_verified(headers):
         raise HTTPException(status_code=401, detail="unauthorized")
-    ip = _get_client_ip(request.headers, getattr(request.client, "host", None))
+
+
+def _acquire_stream_slot(ip: str) -> None:
+    global _current_clients
+    # Global cap
     if _current_clients >= _max_clients():
         raise HTTPException(status_code=429, detail="too_many_clients")
+    # Per-IP cap
     m_per_ip = _max_per_ip()
     if m_per_ip and _ip_conn_counts.get(ip, 0) >= m_per_ip:
         raise HTTPException(status_code=429, detail="too_many_clients_ip")
+    # Reserve
     _current_clients += 1
     _ip_conn_counts[ip] = _ip_conn_counts.get(ip, 0) + 1
-    resp = StreamingResponse(_sse_iter(client_id=str(id(request))), media_type="text/event-stream")
-    try:
-        resp.background = None  # ensure no background task conflict
-    except Exception:
-        pass
-    # Starlette doesn't provide on-close hook here; decrement in iterator finally as well
+
+
+@app.get("/events/stream")
+async def events_stream(request: Request):
+    # Auth checks
+    _check_stream_auth(request.headers)
+    # Rate limiting and reservation
+    ip = _get_client_ip(request.headers, getattr(request.client, "host", None))
+    _acquire_stream_slot(ip)
+    # Stream response; iterator handles cleanup
+    resp = StreamingResponse(_sse_iter(client_id=str(id(request)), ip=ip), media_type="text/event-stream")
+    with contextlib.suppress(Exception):
+        resp.background = None
     return resp
 
 # --- WebSocket endpoint ------------------------------------------------------

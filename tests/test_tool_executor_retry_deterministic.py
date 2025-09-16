@@ -21,7 +21,7 @@ class DummyJS:
         self.published: list[tuple[str, bytes]] = []
         self.subscribed = None
         self.info = types.SimpleNamespace(num_pending=0)
-    async def publish(self, subj: str, data: bytes):
+    async def publish(self, subj: str, data: bytes, headers=None):
         self.published.append((subj, data))
     async def add_stream(self, *args, **kwargs):
         return None
