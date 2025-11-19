@@ -13,10 +13,20 @@ build/
 site-packages/
 node_modules/
 .venv/
+venv/
 coverage/
 tmp/
 data/
 logs/
+
+# Next.js build outputs
+.next/
+out/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
 #Ignore cursor AI rules
 .cursor/rules/codacy.mdc
