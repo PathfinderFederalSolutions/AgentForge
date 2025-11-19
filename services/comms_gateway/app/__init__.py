@@ -1,1 +1,2 @@
-# Subpackage for comms gateway app
+"""Communications Gateway Package"""
+
