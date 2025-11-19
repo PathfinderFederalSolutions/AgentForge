@@ -5,3 +5,43 @@
 .env
 .env.*
 !.env.example
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage*
+*.egg-info/
+dist/
+build/
+site-packages/
+.venv/
+venv/
+coverage/
+
+# Node.js
+node_modules/
+
+# Next.js build outputs
+.next/
+out/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Data and logs
+data/
+logs/
