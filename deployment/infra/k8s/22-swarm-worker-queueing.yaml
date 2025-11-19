@@ -1,0 +1,177 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swarm-jetstream-config
+  namespace: agentforge-staging
+data:
+  # Work-queue for incoming swarm jobs (pull consumers)
+  stream-swarm-jobs.json: |
+    {
+      "name": "SWARM_JOBS",
+      "description": "Work-queue for AgentForge swarm jobs",
+      "subjects": ["swarm.jobs.*"],
+      "retention": "workqueue",
+      "max_bytes": 21474836480,
+      "max_msgs": -1,
+      "max_age": "72h",
+      "max_msg_size": 0,
+      "storage": "file",
+      "num_replicas": 3,
+      "discard": "old",
+      "duplicates": "2m",
+      "allow_rollup_hdrs": false,
+      "deny_delete": false,
+      "deny_purge": false
+    }
+  # Stream used to persist results/telemetry from workers
+  stream-swarm-results.json: |
+    {
+      "name": "SWARM_RESULTS",
+      "description": "Results & telemetry from AgentForge swarm",
+      "subjects": ["swarm.results.*"],
+      "retention": "limits",
+      "max_bytes": 21474836480,
+      "max_msgs": -1,
+      "max_age": "168h",
+      "max_msg_size": 0,
+      "storage": "file",
+      "num_replicas": 3,
+      "discard": "old",
+      "duplicates": "2m",
+      "allow_rollup_hdrs": false,
+      "deny_delete": false,
+      "deny_purge": false
+    }
+  # Default worker pool (pull consumer) -> matches subject swarm.jobs.default
+  consumer-swarm-jobs-default.json: |
+    {
+      "durable_name": "POOL_DEFAULT",
+      "description": "Default swarm worker pool",
+      "filter_subject": "swarm.jobs.default",
+      "ack_policy": "explicit",
+      "ack_wait": "60s",
+      "max_deliver": 10,
+      "backoff": ["1s","2s","5s","10s","30s","60s"],
+      "replay_policy": "instant",
+      "max_ack_pending": 2000,
+      "inactive_threshold": "1h",
+      "deliver_policy": "new"
+    }
+  # High priority pool -> matches subject swarm.jobs.highprio
+  consumer-swarm-jobs-highprio.json: |
+    {
+      "durable_name": "POOL_HIGHPRIO",
+      "description": "High-priority swarm worker pool",
+      "filter_subject": "swarm.jobs.highprio",
+      "ack_policy": "explicit",
+      "ack_wait": "30s",
+      "max_deliver": 15,
+      "backoff": ["0.5s","1s","2s","5s","10s","30s"],
+      "replay_policy": "instant",
+      "max_ack_pending": 4000,
+      "inactive_threshold": "1h",
+      "deliver_policy": "new"
+    }
+  # Optional results sink consumer (if something needs to pull results)
+  consumer-swarm-results-sink.json: |
+    {
+      "durable_name": "RESULTS_SINK",
+      "description": "Pull results for downstream sinks",
+      "ack_policy": "explicit",
+      "ack_wait": "30s",
+      "max_deliver": 10,
+      "replay_policy": "instant",
+      "filter_subject": "swarm.results.*",
+      "deliver_policy": "new",
+      "max_ack_pending": 4000
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swarm-jetstream-bootstrap
+  namespace: agentforge-staging
+data:
+  bootstrap.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    NATS_URL="${NATS_URL:-nats://nats.agentforge-staging.svc:4222}"
+    CREDS_FLAG=""
+    if [[ -n "${NATS_CREDS_PATH:-}" && -f "${NATS_CREDS_PATH}" ]]; then
+      CREDS_FLAG="--creds ${NATS_CREDS_PATH}"
+    fi
+
+    echo "Waiting for NATS at ${NATS_URL} ..."
+    for i in {1..60}; do
+      if nats -s "${NATS_URL}" ${CREDS_FLAG} account info >/dev/null 2>&1; then
+        echo "NATS is up."
+        break
+      fi
+      sleep 2
+    done
+
+    echo "Ensuring streams exist (idempotent) ..."
+    nats -s "${NATS_URL}" ${CREDS_FLAG} stream add --config /config/stream-swarm-jobs.json     --yes || true
+    nats -s "${NATS_URL}" ${CREDS_FLAG} stream add --config /config/stream-swarm-results.json  --yes || true
+
+    echo "Ensuring consumers exist (idempotent) ..."
+    nats -s "${NATS_URL}" ${CREDS_FLAG} consumer add SWARM_JOBS   --config /config/consumer-swarm-jobs-default.json   --force || true
+    nats -s "${NATS_URL}" ${CREDS_FLAG} consumer add SWARM_JOBS   --config /config/consumer-swarm-jobs-highprio.json  --force || true
+    nats -s "${NATS_URL}" ${CREDS_FLAG} consumer add SWARM_RESULTS --config /config/consumer-swarm-results-sink.json   --force || true
+
+    echo "Current Streams:"
+    nats -s "${NATS_URL}" ${CREDS_FLAG} stream ls || true
+    echo "Current Consumers (SWARM_JOBS):"
+    nats -s "${NATS_URL}" ${CREDS_FLAG} consumer ls SWARM_JOBS || true
+    echo "Current Consumers (SWARM_RESULTS):"
+    nats -s "${NATS_URL}" ${CREDS_FLAG} consumer ls SWARM_RESULTS || true
+
+    echo "Done."
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: swarm-jetstream-setup
+  namespace: agentforge-staging
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: swarm-jetstream-setup
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: default
+      containers:
+        - name: nats-bootstrap
+          image: synadia/nats-box:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "/bootstrap/bootstrap.sh"]
+          env:
+            - name: NATS_URL
+              value: "nats://nats.agentforge-staging.svc:4222"
+            # If you use NATS creds, mount the secret and uncomment:
+            # - name: NATS_CREDS_PATH
+            #   value: "/creds/user.creds"
+          volumeMounts:
+            - name: cfg
+              mountPath: /config
+              readOnly: true
+            - name: bootstrap
+              mountPath: /bootstrap
+              readOnly: true
+            # - name: nats-creds
+            #   mountPath: /creds
+              # readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: swarm-jetstream-config
+        - name: bootstrap
+          configMap:
+            name: swarm-jetstream-bootstrap
+            defaultMode: 0755
+        # - name: nats-creds
+        #   secret:
+        #     secretName: nats-user-creds

@@ -1,0 +1,236 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: agentforge-production-hardened
+  annotations:
+    agentforge.io/hardening-level: "production"
+    agentforge.io/compliance: "SOC2,ISO27001,GDPR"
+
+# Base configuration
+resources:
+  - ../base
+  - enhanced-orchestrator-deployment.yaml
+  - enhanced-monitoring-deployment.yaml
+  - neural-mesh-deployment.yaml
+  - security-policies.yaml
+  - network-policies-hardened.yaml
+  - pod-security-policies.yaml
+  - service-monitors-enhanced.yaml
+  - grafana-dashboards-configmap.yaml
+  - prometheus-rules-enhanced.yaml
+
+# Production namespace
+namespace: agentforge-production
+
+# Production labels
+commonLabels:
+  environment: production
+  deployment.agentforge.io/type: production
+  deployment.agentforge.io/hardening: enabled
+  security.agentforge.io/level: hardened
+
+# Production annotations
+commonAnnotations:
+  agentforge.io/managed-by: kustomize
+  agentforge.io/version: "1.0.0"
+  agentforge.io/hardening-date: "2025-09-20"
+  compliance.agentforge.io/frameworks: "SOC2,ISO27001,GDPR"
+
+# Production-hardened configuration
+configMapGenerator:
+  - name: agentforge-config
+    behavior: merge
+    literals:
+      # Environment
+      - AF_ENVIRONMENT=production
+      - AF_LOG_LEVEL=INFO
+      - AF_DEBUG=false
+      - AF_TEST_MODE=false
+      
+      # Security hardening
+      - AF_SECURITY_HARDENED=true
+      - AF_ZERO_TRUST_ENABLED=true
+      - AF_ENCRYPTION_ENABLED=true
+      - AF_AUDIT_LOGGING_ENABLED=true
+      - AF_COMPLIANCE_MONITORING=true
+      
+      # Performance optimization
+      - AF_ENHANCED_ORCHESTRATION=true
+      - AF_NEURAL_MESH_ENABLED=true
+      - AF_BACKPRESSURE_MANAGEMENT=true
+      - AF_CIRCUIT_BREAKERS_ENABLED=true
+      
+      # Million-scale settings
+      - AF_MAX_AGENTS=1000000
+      - AF_MAX_CONCURRENT_TASKS=100000
+      - AF_SWARM_SIZE=1000
+      - AF_MEGA_SWARM_SIZE=100000
+      
+      # Memory configuration
+      - AF_L1_MEMORY_MAX_ITEMS=10000
+      - AF_L2_MEMORY_TTL=3600
+      - AF_L3_MEMORY_ENABLED=true
+      - AF_L4_MEMORY_ENABLED=true
+      
+      # Messaging configuration
+      - AF_NATS_ENHANCED=true
+      - AF_JETSTREAM_MILLION_SCALE=true
+      - AF_MESSAGE_BATCH_SIZE=1000
+      - AF_MAX_ACK_PENDING=50000
+      
+      # Monitoring configuration
+      - AF_METRICS_ENABLED=true
+      - AF_TRACING_ENABLED=true
+      - AF_ENHANCED_OBSERVABILITY=true
+      - AF_PROMETHEUS_SCRAPE_INTERVAL=15s
+      
+      # Compliance settings
+      - AF_COMPLIANCE_FRAMEWORKS=SOC2,ISO27001,GDPR
+      - AF_DATA_RETENTION_DAYS=2555
+      - AF_AUDIT_RETENTION_DAYS=2555
+      - AF_ENCRYPTION_AT_REST=true
+      - AF_ENCRYPTION_IN_TRANSIT=true
+
+secretGenerator:
+  - name: agentforge-secrets
+    behavior: replace
+    literals:
+      # Database credentials
+      - DATABASE_URL=postgresql://agentforge:PLACEHOLDER@postgres.agentforge-production.svc.cluster.local:5432/agentforge
+      - REDIS_URL=redis://redis.agentforge-production.svc.cluster.local:6379
+      
+      # NATS credentials
+      - NATS_URL=nats://nats.agentforge-production.svc.cluster.local:4222
+      - NATS_TOKEN=PLACEHOLDER-PRODUCTION-TOKEN
+      
+      # AI provider keys
+      - OPENAI_API_KEY=PLACEHOLDER-OPENAI-PRODUCTION
+      - ANTHROPIC_API_KEY=PLACEHOLDER-ANTHROPIC-PRODUCTION
+      - GOOGLE_API_KEY=PLACEHOLDER-GOOGLE-PRODUCTION
+      
+      # Vector store credentials
+      - PINECONE_API_KEY=PLACEHOLDER-PINECONE-PRODUCTION
+      - WEAVIATE_URL=http://weaviate.agentforge-production.svc.cluster.local:8080
+      
+      # Security keys
+      - JWT_SECRET_KEY=PLACEHOLDER-JWT-SECRET
+      - ENCRYPTION_KEY=PLACEHOLDER-ENCRYPTION-KEY
+      - AUDIT_SIGNING_KEY=PLACEHOLDER-AUDIT-SIGNING
+    type: Opaque
+
+# Production image tags
+images:
+  - name: agentforge-swarm
+    newTag: "production-v1.0.0"
+  - name: agentforge-orchestrator
+    newTag: "production-v1.0.0"
+  - name: agentforge-memory
+    newTag: "production-v1.0.0"
+  - name: agentforge-neural-mesh
+    newTag: "production-v1.0.0"
+  - name: agentforge-security
+    newTag: "production-v1.0.0"
+  - name: agentforge-monitoring
+    newTag: "production-v1.0.0"
+
+# Production resource allocation
+replicas:
+  - name: agentforge-swarm
+    count: 10  # Scale for production load
+  - name: agentforge-orchestrator
+    count: 5   # Multiple orchestrators for HA
+  - name: agentforge-neural-mesh
+    count: 3   # Neural mesh replicas
+  - name: agentforge-security
+    count: 2   # Security service HA
+
+# Resource limits for production
+patches:
+  - target:
+      kind: Deployment
+      name: agentforge-orchestrator
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+  
+  - target:
+      kind: Deployment
+      name: agentforge-swarm
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+  
+  - target:
+      kind: Deployment
+      name: agentforge-neural-mesh
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: "2000m"
+            memory: "4Gi"
+          limits:
+            cpu: "8000m"
+            memory: "16Gi"
+
+# Security hardening patches
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+            add: ["NET_BIND_SERVICE"]
+
+# Horizontal Pod Autoscaler configurations
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: agentforge-orchestrator-hpa
+    patch: |-
+      - op: replace
+        path: /spec/maxReplicas
+        value: 50
+      - op: replace
+        path: /spec/metrics
+        value:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 70
+          - type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 80

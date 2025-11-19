@@ -1,0 +1,246 @@
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: agentforge-hardened-psp
+  namespace: agentforge-production
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  allowedCapabilities:
+    - NET_BIND_SERVICE
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  readOnlyRootFilesystem: true
+  seLinux:
+    rule: RunAsAny
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentforge-orchestrator
+  namespace: agentforge-production
+  annotations:
+    agentforge.io/component: "orchestrator"
+    agentforge.io/security-level: "hardened"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agentforge-orchestrator-role
+  namespace: agentforge-production
+rules:
+  # ConfigMap access for configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  
+  # Secret access for credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  
+  # Pod management for agent lifecycle
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  
+  # Service discovery
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  
+  # Metrics and monitoring
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agentforge-orchestrator-binding
+  namespace: agentforge-production
+subjects:
+  - kind: ServiceAccount
+    name: agentforge-orchestrator
+    namespace: agentforge-production
+roleRef:
+  kind: Role
+  name: agentforge-orchestrator-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agentforge-orchestrator-netpol
+  namespace: agentforge-production
+spec:
+  podSelector:
+    matchLabels:
+      app: agentforge-orchestrator
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  ingress:
+    # Allow ingress from other AgentForge components
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: agentforge
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 8080
+    
+    # Allow ingress from monitoring systems
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+  
+  egress:
+    # Allow egress to NATS
+    - to:
+        - podSelector:
+            matchLabels:
+              app: nats
+      ports:
+        - protocol: TCP
+          port: 4222
+        - protocol: TCP
+          port: 8222
+    
+    # Allow egress to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    
+    # Allow egress to PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    
+    # Allow egress to other AgentForge components
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: agentforge
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 9090
+    
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow HTTPS for external AI APIs (restricted to specific domains)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+      # In production, this would be restricted to specific IP ranges
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentforge-security-config
+  namespace: agentforge-production
+data:
+  security-policy.json: |
+    {
+      "version": "1.0",
+      "hardening_level": "production",
+      "compliance_frameworks": ["SOC2", "ISO27001", "GDPR"],
+      "security_controls": {
+        "zero_trust": {
+          "enabled": true,
+          "default_deny": true,
+          "require_authentication": true,
+          "require_authorization": true
+        },
+        "encryption": {
+          "at_rest": true,
+          "in_transit": true,
+          "key_rotation_days": 90
+        },
+        "audit": {
+          "enabled": true,
+          "retention_days": 2555,
+          "digital_signatures": true,
+          "immutable_logs": true
+        },
+        "network": {
+          "ingress_restrictions": true,
+          "egress_restrictions": true,
+          "pod_to_pod_encryption": true
+        }
+      },
+      "compliance_requirements": {
+        "data_retention": {
+          "application_logs": "2555 days",
+          "audit_logs": "2555 days",
+          "user_data": "configurable per tenant"
+        },
+        "access_controls": {
+          "mfa_required": true,
+          "session_timeout": 3600,
+          "password_complexity": "high"
+        },
+        "monitoring": {
+          "security_events": true,
+          "compliance_violations": true,
+          "performance_metrics": true
+        }
+      }
+    }

@@ -1,7 +1,22 @@
-#Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.DS_Store
+.env*
+.coverage*
+*.egg-info/
+dist/
+build/
+site-packages/
+node_modules/
+.venv/
+coverage/
+tmp/
+data/
+logs/
 
-# Local env files
-.env
-.env.*
-!.env.example
+#Ignore cursor AI rules
+.cursor/rules/codacy.mdc

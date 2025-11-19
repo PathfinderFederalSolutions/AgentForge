@@ -1,8 +1,0 @@
-2025-09-15T02:14:09.444Z [info]: Agent swarm service listening on port 3000
-2025-09-15T02:14:40.140Z [info]: Received request: GET /
-2025-09-15T02:14:40.200Z [info]: Received request: GET /apple-touch-icon-precomposed.png
-2025-09-15T02:14:40.203Z [info]: Received request: GET /apple-touch-icon.png
-2025-09-15T02:14:40.205Z [info]: Received request: GET /favicon.ico
-2025-09-15T02:14:42.803Z [info]: Received request: GET /
-2025-09-15T02:14:47.563Z [info]: Received request: GET /
-2025-09-15T02:14:47.713Z [info]: Received request: GET /

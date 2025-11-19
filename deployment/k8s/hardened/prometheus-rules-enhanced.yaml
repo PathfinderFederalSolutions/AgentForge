@@ -1,0 +1,322 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agentforge-enhanced-rules
+  namespace: agentforge-production
+  labels:
+    app: agentforge
+    component: monitoring
+spec:
+  groups:
+    # Million-Scale Recording Rules
+    - name: agentforge_million_scale_recording
+      interval: 15s
+      rules:
+        # Agent coordination metrics
+        - record: agentforge:million_scale_agent_rate
+          expr: sum(rate(agentforge_agents_active[2m]))
+        
+        - record: agentforge:million_scale_task_rate
+          expr: sum(rate(orchestrator_tasks_processed_total[2m]))
+        
+        - record: agentforge:million_scale_memory_ops_rate
+          expr: sum(rate(agentforge_memory_operations_total[2m]))
+        
+        # Performance SLIs
+        - record: agentforge:task_success_rate_5m
+          expr: sum(rate(orchestrator_tasks_processed_total{status="completed"}[5m])) / sum(rate(orchestrator_tasks_processed_total[5m]))
+        
+        - record: agentforge:memory_success_rate_5m
+          expr: sum(rate(agentforge_memory_operations_total{status="success"}[5m])) / sum(rate(agentforge_memory_operations_total[5m]))
+        
+        - record: agentforge:system_health_score
+          expr: (100 - system_cpu_usage_percent) * (100 - system_memory_usage_percent) / 100
+        
+        # Capacity utilization
+        - record: agentforge:orchestrator_capacity_utilization
+          expr: (orchestrator_active_tasks / 100000) * 100  # Assuming 100K max capacity
+        
+        - record: agentforge:neural_mesh_capacity_utilization
+          expr: sum(agentforge_memory_operations_total) / 1000000 * 100  # Assuming 1M capacity
+
+    # Million-Scale Alerting Rules
+    - name: agentforge_million_scale_alerts
+      interval: 15s
+      rules:
+        # Throughput alerts
+        - alert: AgentForgeMillionScaleThroughputCritical
+          expr: agentforge:million_scale_agent_rate < 1000
+          for: 5m
+          labels:
+            severity: critical
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "AgentForge million-scale throughput critically low"
+            description: "Agent coordination rate: {{ $value }}/sec (target: >1000/sec)"
+            runbook: "https://docs.agentforge.io/runbooks/million-scale-throughput"
+            impact: "System not meeting million-scale performance targets"
+        
+        - alert: AgentForgeTaskProcessingStalled
+          expr: agentforge:million_scale_task_rate < 100
+          for: 3m
+          labels:
+            severity: warning
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Task processing rate below optimal"
+            description: "Task processing rate: {{ $value }}/sec (target: >100/sec)"
+        
+        # Capacity alerts
+        - alert: AgentForgeOrchestratorCapacityHigh
+          expr: agentforge:orchestrator_capacity_utilization > 80
+          for: 5m
+          labels:
+            severity: warning
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Orchestrator approaching capacity limit"
+            description: "Orchestrator capacity: {{ $value }}% (threshold: 80%)"
+            runbook: "https://docs.agentforge.io/runbooks/orchestrator-scaling"
+        
+        - alert: AgentForgeOrchestratorCapacityCritical
+          expr: agentforge:orchestrator_capacity_utilization > 95
+          for: 2m
+          labels:
+            severity: critical
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Orchestrator near capacity limit"
+            description: "Orchestrator capacity: {{ $value }}% (threshold: 95%)"
+            impact: "Task processing may be throttled or rejected"
+        
+        # Memory system alerts
+        - alert: AgentForgeNeuralMeshMemoryHigh
+          expr: agentforge:neural_mesh_capacity_utilization > 85
+          for: 10m
+          labels:
+            severity: warning
+            component: memory
+            team: platform
+          annotations:
+            summary: "Neural mesh memory utilization high"
+            description: "Memory utilization: {{ $value }}% (threshold: 85%)"
+            runbook: "https://docs.agentforge.io/runbooks/memory-scaling"
+        
+        # Performance SLO alerts
+        - alert: AgentForgeTaskSuccessRateLow
+          expr: agentforge:task_success_rate_5m < 0.95
+          for: 5m
+          labels:
+            severity: warning
+            component: orchestration
+            team: platform
+            slo: reliability
+          annotations:
+            summary: "Task success rate below SLO"
+            description: "Task success rate: {{ $value | humanizePercentage }} (SLO: 95%)"
+            runbook: "https://docs.agentforge.io/runbooks/task-reliability"
+        
+        - alert: AgentForgeMemorySuccessRateLow
+          expr: agentforge:memory_success_rate_5m < 0.99
+          for: 3m
+          labels:
+            severity: warning
+            component: memory
+            team: platform
+            slo: reliability
+          annotations:
+            summary: "Memory operation success rate below SLO"
+            description: "Memory success rate: {{ $value | humanizePercentage }} (SLO: 99%)"
+        
+        # System health alerts
+        - alert: AgentForgeSystemHealthDegraded
+          expr: agentforge:system_health_score < 70
+          for: 10m
+          labels:
+            severity: warning
+            component: system
+            team: platform
+          annotations:
+            summary: "System health score degraded"
+            description: "Health score: {{ $value }} (threshold: 70)"
+            runbook: "https://docs.agentforge.io/runbooks/system-health"
+        
+        - alert: AgentForgeSystemHealthCritical
+          expr: agentforge:system_health_score < 50
+          for: 5m
+          labels:
+            severity: critical
+            component: system
+            team: platform
+          annotations:
+            summary: "System health critically degraded"
+            description: "Health score: {{ $value }} (threshold: 50)"
+            impact: "System performance severely impacted"
+
+    # Security and Compliance Alerts
+    - name: agentforge_security_alerts
+      interval: 30s
+      rules:
+        - alert: AgentForgeSecurityIncident
+          expr: increase(agentforge_security_incidents_total[15m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: security
+            team: security
+          annotations:
+            summary: "Security incident detected"
+            description: "{{ $value }} security incidents in last 15 minutes"
+            runbook: "https://docs.agentforge.io/runbooks/security-incident"
+            escalation: "immediate"
+        
+        - alert: AgentForgeComplianceViolation
+          expr: increase(agentforge_compliance_violations_total[30m]) > 0
+          for: 2m
+          labels:
+            severity: critical
+            component: compliance
+            team: compliance
+          annotations:
+            summary: "Compliance violation detected"
+            description: "{{ $value }} compliance violations in last 30 minutes"
+            runbook: "https://docs.agentforge.io/runbooks/compliance-violation"
+        
+        - alert: AgentForgeUnauthorizedAccess
+          expr: increase(agentforge_unauthorized_access_attempts_total[10m]) > 5
+          for: 1m
+          labels:
+            severity: warning
+            component: security
+            team: security
+          annotations:
+            summary: "Multiple unauthorized access attempts"
+            description: "{{ $value }} unauthorized access attempts in last 10 minutes"
+            runbook: "https://docs.agentforge.io/runbooks/unauthorized-access"
+        
+        - alert: AgentForgeEncryptionFailure
+          expr: increase(agentforge_encryption_failures_total[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: security
+            team: security
+          annotations:
+            summary: "Encryption operation failures detected"
+            description: "{{ $value }} encryption failures in last 5 minutes"
+            impact: "Data security may be compromised"
+
+    # Neural Mesh Specific Alerts
+    - name: agentforge_neural_mesh_alerts
+      interval: 30s
+      rules:
+        - alert: AgentForgeNeuralMeshSyncFailure
+          expr: increase(agentforge_neural_mesh_sync_failures_total[10m]) > 0
+          for: 2m
+          labels:
+            severity: warning
+            component: neural-mesh
+            team: platform
+          annotations:
+            summary: "Neural mesh synchronization failures"
+            description: "{{ $value }} sync failures in last 10 minutes"
+            runbook: "https://docs.agentforge.io/runbooks/neural-mesh-sync"
+        
+        - alert: AgentForgeEmbeddingGenerationSlow
+          expr: histogram_quantile(0.95, rate(agentforge_embedding_generation_latency_seconds_bucket[5m])) > 2.0
+          for: 5m
+          labels:
+            severity: warning
+            component: neural-mesh
+            team: platform
+          annotations:
+            summary: "Embedding generation latency high"
+            description: "95th percentile latency: {{ $value }}s (threshold: 2s)"
+            runbook: "https://docs.agentforge.io/runbooks/embedding-optimization"
+        
+        - alert: AgentForgeMemoryTierUnavailable
+          expr: up{job=~".*memory.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: neural-mesh
+            team: platform
+          annotations:
+            summary: "Memory tier unavailable"
+            description: "Memory service {{ $labels.job }} is down"
+            impact: "Memory operations may fail or degrade"
+
+    # Orchestration Alerts
+    - name: agentforge_orchestration_alerts
+      interval: 30s
+      rules:
+        - alert: AgentForgeTaskQueueBacklogCritical
+          expr: sum(orchestrator_queue_depth) > 10000
+          for: 5m
+          labels:
+            severity: critical
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Critical task queue backlog"
+            description: "Total queue depth: {{ $value }} (threshold: 10,000)"
+            runbook: "https://docs.agentforge.io/runbooks/task-backlog"
+            impact: "Task processing severely delayed"
+        
+        - alert: AgentForgeDLQSizeHigh
+          expr: orchestrator_dlq_size > 1000
+          for: 10m
+          labels:
+            severity: warning
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Dead letter queue size high"
+            description: "DLQ size: {{ $value }} items (threshold: 1,000)"
+            runbook: "https://docs.agentforge.io/runbooks/dlq-management"
+        
+        - alert: AgentForgeOrchestratorDown
+          expr: up{job="agentforge-orchestrator"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            component: orchestration
+            team: platform
+          annotations:
+            summary: "Orchestrator service down"
+            description: "Orchestrator {{ $labels.instance }} is not responding"
+            impact: "Task processing stopped"
+            escalation: "immediate"
+
+    # Business Logic Alerts
+    - name: agentforge_business_alerts
+      interval: 60s
+      rules:
+        - alert: AgentForgeMillionScaleTargetMissed
+          expr: agentforge:million_scale_agent_rate < 1000000 / 86400  # 1M agents per day target
+          for: 1h
+          labels:
+            severity: info
+            component: business
+            team: product
+          annotations:
+            summary: "Million-scale target not being met"
+            description: "Current rate: {{ $value }}/sec, Target: ~11.6/sec for 1M/day"
+            impact: "Business objectives may not be achieved"
+        
+        - alert: AgentForgeAGICapabilityDegraded
+          expr: agentforge:task_success_rate_5m{strategy="mega_swarm"} < 0.90
+          for: 15m
+          labels:
+            severity: warning
+            component: agi
+            team: product
+          annotations:
+            summary: "AGI capability performance degraded"
+            description: "Mega-swarm success rate: {{ $value | humanizePercentage }} (target: >90%)"
+            runbook: "https://docs.agentforge.io/runbooks/agi-optimization"

@@ -1,0 +1,175 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentforge-million-scale-config
+  namespace: agentforge-production
+  labels:
+    app.kubernetes.io/component: million-scale-config
+data:
+  # Million-Scale Production Configuration
+  AF_ENVIRONMENT: "production"
+  AF_SERVICE_VERSION: "1.0.0"
+  AF_LOG_LEVEL: "INFO"
+  AF_LOG_FORMAT: "json"
+  
+  # HTTP Server - High Performance
+  AF_HOST: "0.0.0.0"
+  AF_PORT: "8000"
+  AF_WORKERS: "16"  # Multi-worker for high concurrency
+  
+  # Database - Distributed PostgreSQL Cluster
+  AF_DATABASE_URL: "postgresql://agentforge:${AF_DB_PASSWORD}@postgres-cluster:5432/agentforge"
+  AF_DB_POOL_SIZE: "500"
+  AF_DB_MAX_OVERFLOW: "1000"
+  AF_DB_DISTRIBUTED_SHARDING: "true"
+  AF_DB_READ_REPLICAS: "10"
+  AF_DB_CONNECTION_TIMEOUT: "30"
+  
+  # Redis Cluster - High Availability
+  AF_REDIS_CLUSTER_ENABLED: "true"
+  AF_REDIS_CLUSTER_NODES: "redis-cluster-0:6379,redis-cluster-1:6379,redis-cluster-2:6379"
+  AF_REDIS_POOL_SIZE: "200"
+  AF_REDIS_MAX_CONNECTIONS: "1000"
+  
+  # NATS JetStream - Million-Scale Messaging
+  AF_NATS_CLUSTER_URL: "nats://nats-cluster-0:4222,nats://nats-cluster-1:4222,nats://nats-cluster-2:4222"
+  AF_NATS_JETSTREAM_ENABLED: "true"
+  AF_NATS_MAX_PAYLOAD: "64MB"
+  AF_NATS_MAX_PENDING: "100000"
+  AF_NATS_REPLICAS: "3"
+  
+  # Security - Production Grade
+  AF_API_KEY_REQUIRED: "true"
+  AF_RATE_LIMIT_ENABLED: "true"
+  AF_RATE_LIMIT_REQUESTS: "10000"
+  AF_RATE_LIMIT_WINDOW: "60"
+  AF_TLS_ENABLED: "true"
+  AF_SECURITY_HARDENED: "true"
+  
+  # Agent Settings - Million Scale
+  AF_MAX_AGENTS: "1000000"
+  AF_AGENT_TIMEOUT: "600"
+  AF_TASK_QUEUE_SIZE: "1000000"
+  AF_AGENT_SCALING_ENABLED: "true"
+  AF_QUANTUM_COORDINATION_ENABLED: "true"
+  AF_NEURAL_MESH_ENABLED: "true"
+  AF_INTELLIGENT_SCALING: "true"
+  AF_AGENT_HEALTH_CHECK_INTERVAL: "30"
+  
+  # Memory Settings - Enterprise Scale
+  AF_MEMORY_TTL: "604800"
+  AF_MEMORY_PRUNE_THRESHOLD: "1000000"
+  AF_EMBEDDINGS_BACKEND: "openai"
+  AF_VECTOR_DIMENSIONS: "3072"
+  AF_VECTOR_INDEX_TYPE: "ivf"
+  AF_MEMORY_DISTRIBUTED: "true"
+  
+  # LLM Settings - Production
+  AF_OPENAI_MODEL: "gpt-4-turbo"
+  AF_ANTHROPIC_MODEL: "claude-3-5-sonnet-20241022"
+  AF_GOOGLE_MODEL: "gemini-1.5-pro"
+  AF_LLM_FAILOVER_ENABLED: "true"
+  AF_LLM_LOAD_BALANCING: "true"
+  AF_LLM_RATE_LIMITING: "true"
+  
+  # Swarm - Million Scale Configuration
+  AF_SWARM_SIZE: "10000"
+  AF_SWARM_SCALING_ENABLED: "true"
+  AF_SWARM_MAX_SIZE: "1000000"
+  AF_SWARM_MIN_SIZE: "1000"
+  AF_MEGA_SWARM_ENABLED: "true"
+  AF_QUANTUM_SCHEDULER_ENABLED: "true"
+  AF_HIERARCHICAL_CLUSTERS_ENABLED: "true"
+  AF_SWARM_COORDINATION_TIMEOUT: "300"
+  AF_SWARM_HEALTH_MONITORING: "true"
+  
+  # Orchestrator - Enterprise Scale
+  AF_MAX_CONCURRENT_JOBS: "100000"
+  AF_JOB_TIMEOUT: "7200"
+  AF_PLANNING_TIMEOUT: "120"
+  AF_SLA_ENABLED: "true"
+  AF_HITL_ENABLED: "true"
+  AF_INTELLIGENT_SCALING: "true"
+  AF_DYNAMIC_LOAD_BALANCING: "true"
+  AF_JOB_PRIORITY_QUEUES: "5"
+  
+  # Neural Mesh - Distributed Memory
+  AF_MESH_MODE: "distributed"
+  AF_MESH_SYNC_INTERVAL: "10"
+  AF_VECTOR_THRESHOLD: "0.85"
+  AF_MESH_REPLICATION_FACTOR: "3"
+  AF_MESH_CONSISTENCY_LEVEL: "strong"
+  AF_L4_GLOBAL_MEMORY_ENABLED: "true"
+  AF_EXTERNAL_KNOWLEDGE_SOURCES: "wikipedia,arxiv,web_search"
+  
+  # Communications Gateway - High Throughput
+  AF_WEBSOCKET_ENABLED: "true"
+  AF_MAX_WEBSOCKET_CONNECTIONS: "100000"
+  AF_MESSAGE_QUEUE_SIZE: "1000000"
+  AF_WEBSOCKET_COMPRESSION: "true"
+  AF_WEBSOCKET_HEARTBEAT: "30"
+  
+  # Observability - Production Monitoring
+  AF_METRICS_ENABLED: "true"
+  AF_METRICS_PORT: "9090"
+  AF_TRACING_ENABLED: "true"
+  AF_TRACING_ENDPOINT: "http://jaeger-collector:14268/api/traces"
+  AF_LOGGING_STRUCTURED: "true"
+  AF_AUDIT_LOGGING: "true"
+  
+  # Performance Optimization
+  AF_CPU_OPTIMIZATION: "true"
+  AF_MEMORY_OPTIMIZATION: "true"
+  AF_NETWORK_OPTIMIZATION: "true"
+  AF_CACHE_OPTIMIZATION: "true"
+  AF_ASYNC_PROCESSING: "true"
+  AF_BATCH_PROCESSING: "true"
+  AF_COMPRESSION_ENABLED: "true"
+  
+  # Quantum Scheduler - Million Scale
+  AF_QUANTUM_MAX_AGENTS: "1000000"
+  AF_QUANTUM_MAX_CLUSTERS: "10000"
+  AF_QUANTUM_COHERENCE_THRESHOLD: "0.8"
+  AF_QUANTUM_ENTANGLEMENT_ENABLED: "true"
+  AF_QUANTUM_SUPERPOSITION_ENABLED: "true"
+  AF_QUANTUM_OPTIMIZATION: "true"
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agentforge-million-scale-quota
+  namespace: agentforge-production
+spec:
+  hard:
+    requests.cpu: "1000"      # 1000 CPU cores
+    requests.memory: 2000Gi   # 2TB memory
+    limits.cpu: "2000"        # 2000 CPU cores max
+    limits.memory: 4000Gi     # 4TB memory max
+    requests.nvidia.com/gpu: "100"  # 100 GPUs
+    limits.nvidia.com/gpu: "200"    # 200 GPUs max
+    persistentvolumeclaims: "1000"
+    services: "200"
+    secrets: "200"
+    configmaps: "200"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: agentforge-million-scale-limits
+  namespace: agentforge-production
+spec:
+  limits:
+  - default:
+      cpu: "8000m"      # 8 CPU cores per container
+      memory: "16Gi"    # 16GB memory per container
+      nvidia.com/gpu: "2"  # 2 GPUs per container
+    defaultRequest:
+      cpu: "2000m"      # 2 CPU cores minimum
+      memory: "4Gi"     # 4GB memory minimum
+      nvidia.com/gpu: "1"  # 1 GPU minimum
+    type: Container
+  - default:
+      storage: "1Ti"    # 1TB storage per PVC
+    type: PersistentVolumeClaim

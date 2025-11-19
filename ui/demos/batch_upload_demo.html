@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentForge Massive Upload Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #007AFF;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #f8f9ff;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007AFF, #00C7BE);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .status.info { background: #e3f2fd; color: #1976d2; }
+        .status.success { background: #e8f5e8; color: #2e7d32; }
+        .status.error { background: #ffebee; color: #c62828; }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .file-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AgentForge Massive Upload Demo</h1>
+        <p>This demo shows how to upload thousands of files using the batch upload system.</p>
+        
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <h3>📁 Select Files to Upload</h3>
+            <p>Click here or drag files to upload<br>
+            <small>Supports unlimited files - system automatically handles batching</small></p>
+            <input type="file" id="fileInput" multiple style="display: none;">
+        </div>
+        
+        <div id="fileInfo" class="file-info" style="display: none;">
+            <h4>Selected Files:</h4>
+            <p id="fileCount"></p>
+            <p id="fileSize"></p>
+        </div>
+        
+        <div id="uploadControls" style="display: none;">
+            <button id="uploadBtn">🚀 Start Upload</button>
+            <button id="clearBtn">🗑️ Clear Files</button>
+        </div>
+        
+        <div id="progress" style="display: none;">
+            <h4>Upload Progress:</h4>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <p id="progressText">Preparing upload...</p>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div id="results" style="display: none;">
+            <h4>Upload Results:</h4>
+            <div id="resultsSummary"></div>
+        </div>
+    </div>
+
+    <script src="batch_upload_solution.js"></script>
+    <script>
+        let selectedFiles = null;
+        const uploader = new AgentForgeBatchUploader();
+        
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', handleFileSelection);
+        
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#e3f2fd';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '#f8f9ff';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#f8f9ff';
+            const files = e.dataTransfer.files;
+            handleFileSelection({ target: { files } });
+        });
+        
+        function handleFileSelection(event) {
+            selectedFiles = Array.from(event.target.files);
+            
+            if (selectedFiles.length === 0) return;
+            
+            // Show file info
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileCount').textContent = `Files: ${selectedFiles.length}`;
+            
+            const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+            document.getElementById('fileSize').textContent = `Total Size: ${sizeMB} MB`;
+            
+            // Show upload controls
+            document.getElementById('uploadControls').style.display = 'block';
+            
+            // Show appropriate message
+            const statusDiv = document.getElementById('status');
+            if (selectedFiles.length > 1000) {
+                statusDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>🚀 Massive Upload Detected!</strong><br>
+                        ${selectedFiles.length} files will be uploaded using the batch system.
+                        Files will be processed in batches of 50 for optimal performance.
+                    </div>
+                `;
+            } else if (selectedFiles.length > 100) {
+                statusDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>📦 Large Upload</strong><br>
+                        ${selectedFiles.length} files will be uploaded efficiently.
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>📁 Standard Upload</strong><br>
+                        ${selectedFiles.length} files ready for upload.
+                    </div>
+                `;
+            }
+        }
+        
+        // Upload button
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            if (!selectedFiles || selectedFiles.length === 0) return;
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressDiv = document.getElementById('progress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            uploadBtn.disabled = true;
+            progressDiv.style.display = 'block';
+            
+            try {
+                const results = await uploader.uploadMassiveFileSet(
+                    selectedFiles,
+                    // Progress callback
+                    (current, total, percentage) => {
+                        progressFill.style.width = `${percentage}%`;
+                        progressText.textContent = `Batch ${current}/${total} (${percentage.toFixed(1)}%)`;
+                    },
+                    // Batch complete callback
+                    (result, batchIndex, totalBatches) => {
+                        console.log(`Batch ${batchIndex + 1}/${totalBatches} completed:`, result);
+                    }
+                );
+                
+                // Show results
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('resultsSummary').innerHTML = `
+                    <div class="status success">
+                        <strong>✅ Upload Complete!</strong><br>
+                        Successfully uploaded: ${results.successfulFiles}/${results.totalFiles} files<br>
+                        Total time: ${(results.totalTime/1000).toFixed(1)} seconds<br>
+                        Batches processed: ${results.completedBatches}
+                    </div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Upload Failed</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+        
+        // Clear button
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            selectedFiles = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('uploadControls').style.display = 'none';
+            document.getElementById('progress').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('status').innerHTML = '';
+        });
+        
+        // Load upload info on page load
+        window.addEventListener('load', async () => {
+            try {
+                const info = await uploader.getUploadInfo();
+                console.log('Upload system info:', info);
+            } catch (error) {
+                console.error('Failed to load upload info:', error);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+

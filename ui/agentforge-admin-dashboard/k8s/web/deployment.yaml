@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-swarm-frontend
+  namespace: web
+  labels: { app: agent-swarm-frontend }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: agent-swarm-frontend }
+  template:
+    metadata:
+      labels: { app: agent-swarm-frontend }
+    spec:
+      containers:
+        - name: web
+          image: 375539416169.dkr.ecr.us-east-1.amazonaws.com/agentforge/agent-swarm-frontend:demo
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: { path: "/", port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: "/", port: 3000 }
+            initialDelaySeconds: 10
+            periodSeconds: 20

@@ -1,1 +1,0 @@
-{"created_ts":1757753177.303227,"edges":[{"source":"n0","target":"n1"}],"goal":"Perform EO/IR fusion with conformal calibration","hash":"4bb6244225ff6aaedd04efd872aaf8d458752d1ae67fc072c082357040a037c4","latency_budget_ms":1500,"nodes":[{"args":{},"capability":"bayesian_fusion","node_id":"n0"},{"args":{},"capability":"fuse_and_persist_track","node_id":"n1"}],"seed":42}

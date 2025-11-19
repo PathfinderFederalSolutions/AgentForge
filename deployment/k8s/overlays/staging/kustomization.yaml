@@ -1,0 +1,161 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: agentforge-staging
+
+# Base configuration
+resources:
+  - ../../base
+
+# Staging-specific namespace
+namespace: agentforge-staging
+
+# Staging labels
+commonLabels:
+  environment: staging
+  deployment.agentforge.io/type: staging
+
+# Staging-specific configuration
+configMapGenerator:
+  - name: agentforge-config
+    behavior: merge
+    literals:
+      - AF_ENVIRONMENT=staging
+      - AF_LOG_LEVEL=INFO
+      - AF_DEBUG=false
+      - AF_MOCK_LLM=false
+      - AF_TEST_MODE=false
+      - AF_METRICS_ENABLED=true
+      - AF_TRACING_ENABLED=true
+      - AF_API_KEY_REQUIRED=true
+      - AF_RATE_LIMIT_ENABLED=true
+      # Staging settings
+      - AF_SWARM_SIZE=3
+      - AF_MAX_AGENTS=10
+      - AF_HITL_AUTO_APPROVE=false
+      - AF_SLA_ENFORCEMENT_ENABLED=true
+      - AF_EMBEDDINGS_BACKEND=sentence-transformers
+      - AF_MEMORY_PRUNE_THRESHOLD=5000
+      # Performance settings
+      - AF_DB_POOL_SIZE=15
+      - AF_MAX_CONCURRENT_JOBS=30
+      - AF_TASK_QUEUE_SIZE=2000
+
+secretGenerator:
+  - name: agentforge-secrets
+    behavior: replace
+    literals:
+      - REDIS_PASSWORD=staging-redis-secure-pass
+      - NATS_TOKEN=staging-nats-secure-token
+      - DATABASE_PASSWORD=staging-db-secure-pass
+      - OPENAI_API_KEY=sk-staging-key-placeholder
+      - ANTHROPIC_API_KEY=staging-anthropic-key-placeholder
+      - GOOGLE_API_KEY=staging-google-key-placeholder
+    type: Opaque
+
+# Staging image tags
+images:
+  - name: agentforge-swarm
+    newTag: "staging-v0.1.0"
+  - name: agentforge-orchestrator
+    newTag: "staging-v0.1.0"
+  - name: agentforge-memory
+    newTag: "staging-v0.1.0"
+  - name: agentforge-comms-gateway
+    newTag: "staging-v0.1.0"
+  - name: agentforge-route-engine
+    newTag: "staging-v0.1.0"
+  - name: agentforge-tools
+    newTag: "staging-v0.1.0"
+
+# Staging resource allocation
+replicas:
+  - name: agentforge-swarm
+    count: 2
+  - name: agentforge-orchestrator
+    count: 2
+  - name: agentforge-memory
+    count: 2
+  - name: agentforge-comms-gateway
+    count: 2
+  - name: agentforge-route-engine
+    count: 1
+  - name: agentforge-tools
+    count: 1
+
+# Staging-specific patches
+patches:
+  # Moderate resource requirements for staging
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+  
+  # Add staging environment variables
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_STAGING_MODE
+          value: "true"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_PERFORMANCE_MONITORING
+          value: "true"
+  
+  # Add health checks and probes
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      - op: add
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+  
+  # Add horizontal pod autoscaler configuration
+  - target:
+      kind: Deployment
+      name: agentforge-swarm
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          autoscaling.agentforge.io/enabled: "true"
+          autoscaling.agentforge.io/min-replicas: "2"
+          autoscaling.agentforge.io/max-replicas: "10"
+          autoscaling.agentforge.io/target-cpu: "70"
+
+# Staging-specific resources
+resources:
+  - staging-ingress.yaml
+  - staging-pvc.yaml
+  - staging-hpa.yaml
+  - staging-network-policy.yaml

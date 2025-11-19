@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swarm-worker
+  namespace: agentforge-staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: swarm-worker }
+  template:
+    metadata:
+      labels: { app: swarm-worker }
+    spec:
+      serviceAccountName: processor-sa
+      containers:
+      - name: swarm
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/agentforge-swarm-worker:<TAG>
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - secretRef: { name: agentforge-secrets }      # from External Secrets
+        - configMapRef: { name: agentforge-config }
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "2",    memory: "4Gi" }
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 20
+        readinessProbe:
+          httpGet: { path: /ready,  port: 8080 }
+          initialDelaySeconds: 10

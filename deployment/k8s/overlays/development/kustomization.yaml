@@ -1,0 +1,143 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: agentforge-development
+
+# Base configuration
+resources:
+  - ../../base
+
+# Development-specific namespace
+namespace: agentforge-dev
+
+# Development labels
+commonLabels:
+  environment: development
+  deployment.agentforge.io/type: development
+
+# Development-specific configuration
+configMapGenerator:
+  - name: agentforge-config
+    behavior: merge
+    literals:
+      - AF_ENVIRONMENT=development
+      - AF_LOG_LEVEL=DEBUG
+      - AF_DEBUG=true
+      - AF_MOCK_LLM=true
+      - AF_TEST_MODE=false
+      - AF_METRICS_ENABLED=true
+      - AF_TRACING_ENABLED=true
+      - AF_API_KEY_REQUIRED=false
+      - AF_RATE_LIMIT_ENABLED=false
+      # Development-friendly settings
+      - AF_SWARM_SIZE=2
+      - AF_MAX_AGENTS=5
+      - AF_HITL_AUTO_APPROVE=true
+      - AF_SLA_ENFORCEMENT_ENABLED=false
+      - AF_EMBEDDINGS_BACKEND=hash
+      - AF_MEMORY_PRUNE_THRESHOLD=1000
+
+secretGenerator:
+  - name: agentforge-secrets
+    behavior: replace
+    literals:
+      - REDIS_PASSWORD=dev-redis-pass
+      - NATS_TOKEN=dev-nats-token
+      - DATABASE_PASSWORD=dev-db-pass
+      - OPENAI_API_KEY=sk-dev-placeholder
+      - ANTHROPIC_API_KEY=dev-placeholder
+    type: Opaque
+
+# Development image tags
+images:
+  - name: agentforge-swarm
+    newTag: "dev-latest"
+  - name: agentforge-orchestrator
+    newTag: "dev-latest"
+  - name: agentforge-memory
+    newTag: "dev-latest"
+  - name: agentforge-comms-gateway
+    newTag: "dev-latest"
+  - name: agentforge-route-engine
+    newTag: "dev-latest"
+  - name: agentforge-tools
+    newTag: "dev-latest"
+
+# Development resource limits (lower)
+replicas:
+  - name: agentforge-swarm
+    count: 1
+  - name: agentforge-orchestrator
+    count: 1
+  - name: agentforge-memory
+    count: 1
+  - name: agentforge-comms-gateway
+    count: 1
+  - name: agentforge-route-engine
+    count: 1
+  - name: agentforge-tools
+    count: 1
+
+# Development-specific patches
+patches:
+  # Reduce resource requirements for development
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+  
+  # Add development environment variables
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_DEVELOPMENT_MODE
+          value: "true"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_HOT_RELOAD
+          value: "true"
+  
+  # Add NodePort service type for easy local access
+  - target:
+      kind: Service
+      name: agentforge-swarm-service
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
+  
+  # Enable debug logging for all deployments
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONUNBUFFERED
+          value: "1"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONASYNCIODEBUG
+          value: "1"
+
+# Development-specific resources
+resources:
+  - dev-ingress.yaml
+  - dev-pvc.yaml

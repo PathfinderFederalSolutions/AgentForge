@@ -1,0 +1,417 @@
+# Default values for AgentForge
+# This is a YAML-formatted file.
+
+global:
+  # Global image settings
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  
+  # Global labels applied to all resources
+  labels: {}
+  
+  # Global annotations
+  annotations: {}
+
+# AgentForge application configuration
+agentforge:
+  # Environment: development, staging, production
+  environment: development
+  
+  # Application version
+  version: "0.1.0"
+  
+  # Configuration settings
+  config:
+    # Logging
+    logLevel: INFO
+    logFormat: json
+    
+    # Database
+    database:
+      url: "sqlite:///./data/agentforge.db"
+      poolSize: 10
+      maxOverflow: 20
+    
+    # Redis settings
+    redis:
+      host: "agentforge-redis"
+      port: 6379
+      database: 0
+      password: ""
+    
+    # NATS settings
+    nats:
+      url: "nats://agentforge-nats:4222"
+      maxReconnectAttempts: 60
+      reconnectWait: 2
+    
+    # Security settings
+    security:
+      apiKeyRequired: false
+      rateLimitEnabled: true
+      rateLimitRequests: 100
+      rateLimitWindow: 60
+    
+    # Agent settings - Million Scale Production
+    agents:
+      maxAgents: 1000000
+      agentTimeout: 300
+      taskQueueSize: 100000
+      quantumCoordination: true
+      neuralMeshEnabled: true
+      intelligentScaling: true
+    
+    # Memory settings
+    memory:
+      ttlSeconds: 604800
+      pruneThreshold: 10000
+      embeddingsBackend: "hash"
+    
+    # LLM settings
+    llm:
+      mockEnabled: false
+      openaiModel: "gpt-4"
+      anthropicModel: "claude-3-5-sonnet-20241022"
+      googleModel: "gemini-1.5-pro"
+
+# Service configurations
+services:
+  # Swarm service
+  swarm:
+    enabled: true
+    replicaCount: 2
+    
+    image:
+      repository: agentforge-swarm
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    autoscaling:
+      enabled: true
+      minReplicas: 10
+      maxReplicas: 1000
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 80
+      customMetrics:
+        - agentforge_task_queue_depth
+        - agentforge_swarm_coordination_load
+    
+    config:
+      swarmSize: 1000
+      scalingEnabled: true
+      maxSize: 1000000
+      minSize: 100
+      megaSwarmEnabled: true
+      quantumSchedulerEnabled: true
+      hierarchicalClustersEnabled: true
+  
+  # Orchestrator service
+  orchestrator:
+    enabled: true
+    replicaCount: 2
+    
+    image:
+      repository: agentforge-orchestrator
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    
+    config:
+      maxConcurrentJobs: 50
+      jobTimeout: 3600
+      planningTimeout: 60
+      slaEnabled: true
+      hitlEnabled: true
+  
+  # Memory service
+  memory:
+    enabled: true
+    replicaCount: 1
+    
+    image:
+      repository: agentforge-memory
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    
+    persistence:
+      enabled: true
+      storageClass: ""
+      accessMode: ReadWriteOnce
+      size: 10Gi
+    
+    config:
+      meshMode: "local"
+      syncInterval: 30
+      vectorDimensions: 384
+      vectorThreshold: 0.7
+  
+  # Communications Gateway
+  commsGateway:
+    enabled: true
+    replicaCount: 2
+    
+    image:
+      repository: agentforge-comms-gateway
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    config:
+      websocketEnabled: true
+      maxConnections: 1000
+      messageQueueSize: 10000
+  
+  # Route Engine
+  routeEngine:
+    enabled: true
+    replicaCount: 1
+    
+    image:
+      repository: agentforge-route-engine
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    config:
+      maxRouteDistance: 1000.0
+      routeTimeout: 30
+      maxAlternateRoutes: 5
+  
+  # Tools service
+  tools:
+    enabled: true
+    replicaCount: 1
+    
+    image:
+      repository: agentforge-tools
+      tag: "0.1.0"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 8000
+      targetPort: 8000
+      annotations: {}
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: agentforge.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: agentforge-swarm
+  tls: []
+  #  - secretName: agentforge-tls
+  #    hosts:
+  #      - agentforge.local
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Security Context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1001
+  capabilities:
+    drop:
+    - ALL
+
+# Node selection
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# Monitoring configuration
+monitoring:
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  
+  # Prometheus rules
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    rules: []
+  
+  # Grafana dashboard
+  grafanaDashboard:
+    enabled: false
+    namespace: ""
+    labels: {}
+
+# External dependencies
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "agentforge-redis-password"
+  architecture: standalone
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+nats:
+  enabled: true
+  config:
+    jetstream:
+      enabled: true
+      memStorage:
+        enabled: true
+        size: 1Gi
+      fileStorage:
+        enabled: true
+        size: 10Gi
+  
+postgresql:
+  enabled: false
+  auth:
+    postgresPassword: "agentforge-postgres-password"
+    database: "agentforge"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  retention: "7d"
+  storage:
+    type: "s3"
+    bucket: ""
+    region: ""
+    accessKey: ""
+    secretKey: ""
+
+# External secrets (for production)
+externalSecrets:
+  enabled: false
+  secretStore:
+    provider: "aws"
+    region: "us-west-2"
+  secrets: []
+    # - name: agentforge-api-keys
+    #   refreshInterval: 1h
+    #   data:
+    #     - secretKey: openai-api-key
+    #       remoteRef:
+    #         key: agentforge/openai
+    #         property: api_key

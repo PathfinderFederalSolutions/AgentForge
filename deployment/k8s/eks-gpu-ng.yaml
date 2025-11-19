@@ -1,0 +1,24 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: agentforge-demo
+  region: us-east-1
+
+managedNodeGroups:
+  - name: gpu
+    instanceTypes: ["g6.xlarge","g5.xlarge","p3.2xlarge"]
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 3
+    subnetIDs:
+      - subnet-065885713b7c988e7   # us-east-1b (private)
+      - subnet-03a2199ff25585db4   # us-east-1a (private)
+    privateNetworking: true
+    volumeSize: 100
+    labels: { nodeclass: gpu }
+    taints:
+      - key: "gpu"
+        value: "true"
+        effect: "NoSchedule"
+    overrideBootstrapCommand: |
+      /etc/eks/bootstrap.sh agentforge-demo

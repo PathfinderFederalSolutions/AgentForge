@@ -1,0 +1,3 @@
+# Base requirements for all AgentForge Python services
+# This file is kept for backward compatibility - the canonical version is in services/shared/
+-r services/shared/requirements.base.txt

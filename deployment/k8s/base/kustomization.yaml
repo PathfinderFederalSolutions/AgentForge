@@ -1,0 +1,118 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: agentforge-base
+
+# Base resources that are common across all environments
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - service-account.yaml
+  
+  # Core services
+  - swarm-deployment.yaml
+  - swarm-service.yaml
+  - orchestrator-deployment.yaml
+  - orchestrator-service.yaml
+  - memory-deployment.yaml
+  - memory-service.yaml
+  - comms-gateway-deployment.yaml
+  - comms-gateway-service.yaml
+  - route-engine-deployment.yaml
+  - route-engine-service.yaml
+  
+  # Tools
+  - tools-deployment.yaml
+  - tools-service.yaml
+  
+  # Monitoring
+  - monitoring-deployment.yaml
+  - monitoring-service.yaml
+  
+  # Ingress
+  - ingress.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: agentforge
+  app.kubernetes.io/version: "0.1.0"
+  app.kubernetes.io/component: platform
+  app.kubernetes.io/part-of: agentforge
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  agentforge.io/managed-by: kustomize
+  agentforge.io/version: "0.1.0"
+
+# Image transformations
+images:
+  - name: agentforge-swarm
+    newTag: "0.1.0"
+  - name: agentforge-orchestrator
+    newTag: "0.1.0"
+  - name: agentforge-memory
+    newTag: "0.1.0"
+  - name: agentforge-comms-gateway
+    newTag: "0.1.0"
+  - name: agentforge-route-engine
+    newTag: "0.1.0"
+  - name: agentforge-tools
+    newTag: "0.1.0"
+
+# Configuration generators
+configMapGenerator:
+  - name: agentforge-config
+    literals:
+      - LOG_LEVEL=INFO
+      - METRICS_ENABLED=true
+      - ENVIRONMENT=base
+      - AF_SERVICE_VERSION=0.1.0
+      - AF_METRICS_PORT=9090
+      - AF_HEALTH_CHECK_INTERVAL=30
+      - AF_SHUTDOWN_TIMEOUT=30
+      
+secretGenerator:
+  - name: agentforge-secrets
+    literals:
+      - REDIS_PASSWORD=placeholder
+      - NATS_TOKEN=placeholder
+      - DATABASE_PASSWORD=placeholder
+    type: Opaque
+
+# Resource transformations
+replicas:
+  - name: agentforge-swarm
+    count: 2
+  - name: agentforge-orchestrator
+    count: 2
+  - name: agentforge-memory
+    count: 1
+  - name: agentforge-comms-gateway
+    count: 2
+  - name: agentforge-route-engine
+    count: 1
+  - name: agentforge-tools
+    count: 1
+
+# Patches for common modifications
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_ENVIRONMENT
+          value: base
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

@@ -1,0 +1,245 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: agentforge-production
+
+# Base configuration
+resources:
+  - ../../base
+
+# Production namespace
+namespace: agentforge-prod
+
+# Production labels
+commonLabels:
+  environment: production
+  deployment.agentforge.io/type: production
+  deployment.agentforge.io/tier: critical
+
+# Production-specific configuration
+configMapGenerator:
+  - name: agentforge-config
+    behavior: merge
+    literals:
+      - AF_ENVIRONMENT=production
+      - AF_LOG_LEVEL=WARNING
+      - AF_LOG_FORMAT=json
+      - AF_DEBUG=false
+      - AF_MOCK_LLM=false
+      - AF_TEST_MODE=false
+      - AF_METRICS_ENABLED=true
+      - AF_TRACING_ENABLED=true
+      - AF_API_KEY_REQUIRED=true
+      - AF_RATE_LIMIT_ENABLED=true
+      - AF_RATE_LIMIT_REQUESTS=1000
+      - AF_RATE_LIMIT_WINDOW=60
+      # Production settings
+      - AF_SWARM_SIZE=5
+      - AF_MAX_AGENTS=50
+      - AF_HITL_AUTO_APPROVE=false
+      - AF_SLA_ENFORCEMENT_ENABLED=true
+      - AF_EMBEDDINGS_BACKEND=sentence-transformers
+      - AF_MEMORY_PRUNE_THRESHOLD=50000
+      # High-performance settings
+      - AF_DB_POOL_SIZE=50
+      - AF_DB_MAX_OVERFLOW=100
+      - AF_MAX_CONCURRENT_JOBS=200
+      - AF_TASK_QUEUE_SIZE=10000
+      - AF_WORKERS=4
+      # Security settings
+      - AF_CORS_ORIGINS=https://agentforge.company.com
+      - AF_TLS_ENABLED=true
+      - AF_SECURITY_HEADERS_ENABLED=true
+
+secretGenerator:
+  - name: agentforge-secrets
+    behavior: replace
+    literals:
+      # Production secrets should be managed externally
+      # These are placeholders for external secret management
+      - REDIS_PASSWORD=EXTERNAL_SECRET_REDIS_PASSWORD
+      - NATS_TOKEN=EXTERNAL_SECRET_NATS_TOKEN
+      - DATABASE_PASSWORD=EXTERNAL_SECRET_DATABASE_PASSWORD
+      - OPENAI_API_KEY=EXTERNAL_SECRET_OPENAI_API_KEY
+      - ANTHROPIC_API_KEY=EXTERNAL_SECRET_ANTHROPIC_API_KEY
+      - GOOGLE_API_KEY=EXTERNAL_SECRET_GOOGLE_API_KEY
+      - COHERE_API_KEY=EXTERNAL_SECRET_COHERE_API_KEY
+      - MISTRAL_API_KEY=EXTERNAL_SECRET_MISTRAL_API_KEY
+      - PINECONE_API_KEY=EXTERNAL_SECRET_PINECONE_API_KEY
+      - TLS_CERT=EXTERNAL_SECRET_TLS_CERT
+      - TLS_KEY=EXTERNAL_SECRET_TLS_KEY
+    type: Opaque
+
+# Production image tags (specific versions)
+images:
+  - name: agentforge-swarm
+    newTag: "v0.1.0"
+  - name: agentforge-orchestrator
+    newTag: "v0.1.0"
+  - name: agentforge-memory
+    newTag: "v0.1.0"
+  - name: agentforge-comms-gateway
+    newTag: "v0.1.0"
+  - name: agentforge-route-engine
+    newTag: "v0.1.0"
+  - name: agentforge-tools
+    newTag: "v0.1.0"
+
+# Production resource allocation (high availability)
+replicas:
+  - name: agentforge-swarm
+    count: 5
+  - name: agentforge-orchestrator
+    count: 3
+  - name: agentforge-memory
+    count: 3
+  - name: agentforge-comms-gateway
+    count: 3
+  - name: agentforge-route-engine
+    count: 2
+  - name: agentforge-tools
+    count: 2
+
+# Production-specific patches
+patches:
+  # Production resource requirements (high performance)
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+  
+  # Production environment variables
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_PRODUCTION_MODE
+          value: "true"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_HIGH_AVAILABILITY
+          value: "true"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: AF_SECURITY_HARDENED
+          value: "true"
+  
+  # Production health checks (strict)
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+      - op: add
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          httpGet:
+            path: /ready
+            port: 8000
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+      - op: add
+        path: /spec/template/spec/containers/0/startupProbe
+        value:
+          httpGet:
+            path: /startup
+            port: 8000
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+          successThreshold: 1
+  
+  # Production deployment strategy
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 25%
+            maxSurge: 25%
+  
+  # Pod disruption budget
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                    - agentforge
+                topologyKey: kubernetes.io/hostname
+  
+  # Security context
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          fsGroup: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+
+# Production-specific resources
+resources:
+  - production-ingress.yaml
+  - production-pvc.yaml
+  - production-hpa.yaml
+  - production-vpa.yaml
+  - production-pdb.yaml
+  - production-network-policy.yaml
+  - production-service-monitor.yaml
+  - production-backup-cronjob.yaml

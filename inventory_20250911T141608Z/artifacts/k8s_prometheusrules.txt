@@ -1,2 +1,0 @@
-NAME          AGE
-keda-alerts   2d

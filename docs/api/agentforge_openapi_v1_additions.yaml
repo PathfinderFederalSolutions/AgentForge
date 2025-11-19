@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: AgentForge Control Plane Additions
+  version: '1.0'
+paths:
+  /live:
+    get:
+      summary: Liveness probe (shallow)
+      responses:
+        '200':
+          description: OK
+  /ready:
+    get:
+      summary: Readiness probe (dependencies OK)
+      responses:
+        '200':
+          description: OK
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: OK
+  /v1/chat/stream:
+    get:
+      summary: SSE token stream for chat sessions
+      responses:
+        '200':
+          description: OK
+  /v1/system/capabilities:
+    get:
+      summary: Normalized capabilities endpoint
+      responses:
+        '200':
+          description: OK
+  /v1/usage:
+    get:
+      summary: Usage breakdown by tenant/project/agent
+      responses:
+        '200':
+          description: OK
+  /v1/quotas:
+    get:
+      summary: Get quotas for tenant/project/key
+      responses:
+        '200':
+          description: OK
+  /v1/quotas:
+    post:
+      summary: Set/update quotas
+      responses:
+        '200':
+          description: OK
+  /v1/audit-logs:
+    get:
+      summary: Immutable audit log search
+      responses:
+        '200':
+          description: OK
+  /v1/webhooks:
+    post:
+      summary: Create webhook subscription
+      responses:
+        '200':
+          description: OK
+  /v1/events/stream:
+    get:
+      summary: SSE event stream (jobs/tool-calls)
+      responses:
+        '200':
+          description: OK
+  /v1/models/providers:
+    get:
+      summary: List model providers (FIPS flag)
+      responses:
+        '200':
+          description: OK
+  /v1/models/providers:
+    post:
+      summary: Register/update provider route
+      responses:
+        '200':
+          description: OK
+  /v1/models/routes:
+    get:
+      summary: List routing policies
+      responses:
+        '200':
+          description: OK
+  /v1/models/routes:
+    post:
+      summary: Create/update routing policy
+      responses:
+        '200':
+          description: OK
+  /v1/auth/token:
+    post:
+      summary: Token exchange (OAuth2/OIDC)
+      responses:
+        '200':
+          description: OK
+  /v1/auth/me:
+    get:
+      summary: Introspect current principal
+      responses:
+        '200':
+          description: OK
+  /v1/tenants:
+    get:
+      summary: List tenants (admin) or memberships
+      responses:
+        '200':
+          description: OK
+  /v1/tenants:
+    post:
+      summary: Create tenant
+      responses:
+        '200':
+          description: OK
+  /v1/projects:
+    get:
+      summary: List projects in tenant
+      responses:
+        '200':
+          description: OK
+  /v1/projects:
+    post:
+      summary: Create project
+      responses:
+        '200':
+          description: OK

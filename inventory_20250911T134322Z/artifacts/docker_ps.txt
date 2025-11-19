@@ -1,5 +1,0 @@
-NAMES                IMAGE                            STATUS
-prometheus           prom/prometheus:latest           Up 24 hours
-nats-exporter        prometheus-nats-exporter:local   Up 25 hours
-nats-testing         nats:2.10.18                     Up 25 hours
-kind-control-plane   kindest/node:v1.34.0             Up 31 hours

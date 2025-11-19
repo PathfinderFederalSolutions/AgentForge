@@ -1,0 +1,304 @@
+groups:
+  - name: million_scale_nats_recording_rules
+    interval: 15s  # Higher frequency for million-scale monitoring
+    rules:
+      # Enhanced throughput metrics
+      - record: nats:million_scale_message_rate
+        expr: rate(jetstream_stream_messages[2m])
+      
+      - record: nats:million_scale_bytes_rate  
+        expr: rate(jetstream_stream_bytes[2m])
+      
+      - record: nats:consumer_processing_rate
+        expr: rate(jetstream_consumer_delivered[2m]) - rate(jetstream_consumer_ack_pending[2m])
+      
+      # Connection pool metrics
+      - record: nats:connection_pool_utilization
+        expr: nats_pool_active_connections / nats_pool_available_connections * 100
+      
+      - record: nats:connection_pool_efficiency
+        expr: rate(nats_pool_connection_requests_total[5m]) / rate(nats_pool_connection_errors_total[5m])
+      
+      # Circuit breaker metrics
+      - record: nats:circuit_breaker_failure_rate
+        expr: rate(circuit_breaker_failures_total[5m])
+      
+      - record: nats:circuit_breaker_availability
+        expr: 1 - (circuit_breaker_state > 0)
+      
+      # Performance SLIs
+      - record: nats:publish_latency_p50
+        expr: histogram_quantile(0.50, rate(jetstream_publish_latency_seconds_bucket[5m]))
+      
+      - record: nats:publish_latency_p95
+        expr: histogram_quantile(0.95, rate(jetstream_publish_latency_seconds_bucket[5m]))
+      
+      - record: nats:publish_latency_p99
+        expr: histogram_quantile(0.99, rate(jetstream_publish_latency_seconds_bucket[5m]))
+      
+      # Backlog and capacity metrics
+      - record: nats:total_backlog_messages
+        expr: sum(jetstream_consumer_num_pending)
+      
+      - record: nats:stream_capacity_utilization
+        expr: (jetstream_stream_bytes / jetstream_stream_max_bytes) * 100
+      
+      - record: nats:consumer_lag_seconds
+        expr: (jetstream_consumer_num_pending / rate(jetstream_consumer_delivered[5m]))
+      
+      # Million-scale specific metrics
+      - record: nats:agents_per_second
+        expr: rate(jetstream_stream_messages{stream=~".*agent.*"}[1m])
+      
+      - record: nats:neural_mesh_sync_rate
+        expr: rate(jetstream_stream_messages{stream=~".*mesh.*"}[1m])
+      
+      - record: nats:job_completion_rate
+        expr: rate(jetstream_stream_messages{stream=~".*results.*"}[1m])
+
+  - name: million_scale_nats_alerting_rules
+    interval: 15s
+    rules:
+      # Critical infrastructure alerts
+      - alert: NATSMillionScaleDown
+        expr: up{job="nats-exporter"} == 0
+        for: 30s  # Faster alerting for million-scale
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "NATS million-scale infrastructure is down"
+          description: "NATS server supporting million-scale operations has been down for more than 30 seconds"
+          runbook: "https://docs.agentforge.io/runbooks/nats-recovery"
+
+      # Connection pool alerts
+      - alert: ConnectionPoolExhaustion
+        expr: nats:connection_pool_utilization > 90
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "NATS connection pool near exhaustion"
+          description: "Connection pool utilization is {{ $value }}% (threshold: 90%)"
+          runbook: "https://docs.agentforge.io/runbooks/connection-pool-scaling"
+
+      - alert: ConnectionPoolErrors
+        expr: rate(nats_pool_connection_errors_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High connection pool error rate"
+          description: "Connection pool errors: {{ $value }}/sec over last 5 minutes"
+
+      # Circuit breaker alerts
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker {{ $labels.instance }} is in {{ $labels.state }} state"
+          runbook: "https://docs.agentforge.io/runbooks/circuit-breaker-recovery"
+
+      - alert: CircuitBreakerHighFailureRate
+        expr: nats:circuit_breaker_failure_rate > 5
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High circuit breaker failure rate"
+          description: "Circuit breaker failure rate: {{ $value }}/sec"
+
+      # Performance alerts
+      - alert: HighPublishLatency
+        expr: nats:publish_latency_p95 > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High JetStream publish latency"
+          description: "95th percentile publish latency: {{ $value }}s (threshold: 0.5s)"
+          
+      - alert: CriticalPublishLatency
+        expr: nats:publish_latency_p99 > 2.0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical JetStream publish latency"
+          description: "99th percentile publish latency: {{ $value }}s (threshold: 2.0s)"
+
+      # Capacity alerts
+      - alert: StreamCapacityHigh
+        expr: nats:stream_capacity_utilization > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Stream approaching capacity limit"
+          description: "Stream {{ $labels.stream }} capacity: {{ $value }}% (threshold: 80%)"
+          runbook: "https://docs.agentforge.io/runbooks/stream-scaling"
+
+      - alert: StreamCapacityCritical
+        expr: nats:stream_capacity_utilization > 95
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Stream near capacity limit"
+          description: "Stream {{ $labels.stream }} capacity: {{ $value }}% (threshold: 95%)"
+
+      # Million-scale backlog alerts
+      - alert: MillionScaleBacklogWarning
+        expr: nats:total_backlog_messages > 100000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High message backlog in million-scale system"
+          description: "Total backlog: {{ $value }} messages (threshold: 100K)"
+
+      - alert: MillionScaleBacklogCritical
+        expr: nats:total_backlog_messages > 500000
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical message backlog in million-scale system"
+          description: "Total backlog: {{ $value }} messages (threshold: 500K)"
+          runbook: "https://docs.agentforge.io/runbooks/backlog-recovery"
+
+      # Consumer lag alerts
+      - alert: ConsumerLagHigh
+        expr: nats:consumer_lag_seconds > 300
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High consumer lag detected"
+          description: "Consumer {{ $labels.consumer }} lag: {{ $value }}s (threshold: 300s)"
+
+      - alert: ConsumerLagCritical
+        expr: nats:consumer_lag_seconds > 900
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical consumer lag detected"
+          description: "Consumer {{ $labels.consumer }} lag: {{ $value }}s (threshold: 900s)"
+
+      # Million-scale throughput alerts
+      - alert: AgentThroughputLow
+        expr: nats:agents_per_second < 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Agent throughput below million-scale target"
+          description: "Agent operations: {{ $value }}/sec (target: >1000/sec)"
+
+      - alert: NeuralMeshSyncStalled
+        expr: nats:neural_mesh_sync_rate < 100
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Neural mesh synchronization rate low"
+          description: "Mesh sync rate: {{ $value }}/sec (target: >100/sec)"
+
+      # Replica and availability alerts
+      - alert: StreamReplicaDown
+        expr: jetstream_stream_replica_count < jetstream_stream_config_num_replicas
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Stream replica unavailable"
+          description: "Stream {{ $labels.stream }} has {{ $value }} replicas (expected: {{ $labels.expected }})"
+          runbook: "https://docs.agentforge.io/runbooks/replica-recovery"
+
+      # Error rate alerts
+      - alert: HighPublishErrorRate
+        expr: rate(jetstream_publish_errors_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High JetStream publish error rate"
+          description: "Publish errors: {{ $value }}/sec over last 5 minutes"
+
+      - alert: CriticalPublishErrorRate
+        expr: rate(jetstream_publish_errors_total[5m]) > 200
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Critical JetStream publish error rate"
+          description: "Publish errors: {{ $value }}/sec over last 5 minutes"
+
+  - name: million_scale_slo_rules
+    interval: 30s
+    rules:
+      # SLO definitions for million-scale operations
+      - record: slo:nats_availability_5m
+        expr: (1 - (rate(nats_pool_connection_errors_total[5m]) / rate(nats_pool_connection_requests_total[5m]))) * 100
+
+      - record: slo:publish_success_rate_5m
+        expr: (1 - (rate(jetstream_publish_errors_total[5m]) / rate(jetstream_publish_latency_seconds_count[5m]))) * 100
+
+      - record: slo:consumer_processing_efficiency_5m
+        expr: (rate(jetstream_consumer_delivered[5m]) / (rate(jetstream_consumer_delivered[5m]) + rate(jetstream_consumer_num_pending[5m]))) * 100
+
+      # SLO violation alerts
+      - alert: NATSAvailabilitySLOViolation
+        expr: slo:nats_availability_5m < 99.9
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          slo: availability
+        annotations:
+          summary: "NATS availability SLO violation"
+          description: "NATS availability: {{ $value }}% (SLO: 99.9%)"
+
+      - alert: PublishSuccessRateSLOViolation
+        expr: slo:publish_success_rate_5m < 99.5
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+          slo: reliability
+        annotations:
+          summary: "Publish success rate SLO violation"
+          description: "Publish success rate: {{ $value }}% (SLO: 99.5%)"
+
+      - alert: ConsumerProcessingEfficiencySLOViolation
+        expr: slo:consumer_processing_efficiency_5m < 95.0
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          slo: performance
+        annotations:
+          summary: "Consumer processing efficiency SLO violation"
+          description: "Consumer efficiency: {{ $value }}% (SLO: 95.0%)"
+

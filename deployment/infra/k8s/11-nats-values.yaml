@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentforge-ingress
+  namespace: agentforge-staging
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: <ACM_CERT_ARN>
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+spec:
+  rules:
+    - host: <PUBLIC_DNS_FOR_AGENTFORGE>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tactical-dashboard
+                port: { number: 80 }
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: orchestrator
+                port: { number: 80 }
+          - path: /events
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port: { number: 80 }
+  tls:
+    - hosts: [<PUBLIC_DNS_FOR_AGENTFORGE>]
+      secretName: tls-dummy-from-acm-not-used
+---

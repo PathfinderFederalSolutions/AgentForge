@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: orchestrator-sm
+  namespace: agentforge-staging
+spec:
+  selector:
+    matchLabels:
+      app: orchestrator
+  namespaceSelector:
+    matchNames: [agentforge-staging]
+  endpoints:
+    - port: metrics
+      interval: 15s
+---

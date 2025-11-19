@@ -1,0 +1,296 @@
+# AgentForge Healthcare Pilot Deployment
+# HIPAA-Compliant AGI for Healthcare and Medical Research
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-healthcare
+  labels:
+    compliance.framework: "HIPAA"
+    data.classification: "phi"
+    pilot.type: "healthcare"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agi-healthcare-core
+  namespace: agentforge-healthcare
+  labels:
+    component: "agi-core"
+    compliance: "hipaa"
+    use-case: "medical-intelligence"
+spec:
+  replicas: 3  # High availability for healthcare operations
+  selector:
+    matchLabels:
+      app: agi-healthcare-core
+  template:
+    metadata:
+      labels:
+        app: agi-healthcare-core
+        compliance.framework: "hipaa"
+      annotations:
+        security.istio.io/tlsMode: "STRICT"
+        sidecar.istio.io/inject: "true"
+        compliance.audit: "enabled"
+    spec:
+      serviceAccountName: agi-healthcare-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10002
+        fsGroup: 10002
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agi-core
+        image: agentforge/agi-healthcare:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        env:
+        - name: DEPLOYMENT_TYPE
+          value: "healthcare"
+        - name: COMPLIANCE_FRAMEWORK
+          value: "HIPAA"
+        - name: DATA_CLASSIFICATION
+          value: "PHI"
+        - name: NEURAL_MESH_TIER
+          value: "L3_HEALTHCARE"
+        - name: QUANTUM_SCHEDULER_MODE
+          value: "HEALTHCARE_OPTIMIZED"
+        - name: AGENT_SCALE_TARGET
+          value: "50000"  # 50K agents for healthcare operations
+        - name: PHI_ENCRYPTION
+          value: "AES-256-GCM"
+        - name: DATA_RESIDENCY
+          value: "US_HEALTHCARE"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: healthcare-redis-secret
+              key: url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: healthcare-db-secret
+              key: url
+        resources:
+          requests:
+            cpu: "3"
+            memory: "12Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "6"
+            memory: "24Gi"
+            nvidia.com/gpu: "2"
+        volumeMounts:
+        - name: phi-data
+          mountPath: /data/phi
+          readOnly: false
+        - name: medical-knowledge
+          mountPath: /data/medical
+          readOnly: true
+        - name: healthcare-configs
+          mountPath: /etc/healthcare
+          readOnly: true
+        - name: audit-logs
+          mountPath: /var/log/audit
+          readOnly: false
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: phi-data
+        persistentVolumeClaim:
+          claimName: healthcare-phi-pvc
+      - name: medical-knowledge
+        configMap:
+          name: medical-knowledge-base
+      - name: healthcare-configs
+        configMap:
+          name: healthcare-config
+      - name: audit-logs
+        persistentVolumeClaim:
+          claimName: healthcare-audit-pvc
+      nodeSelector:
+        compliance.hipaa: "enabled"
+        data.residency: "us-healthcare"
+      tolerations:
+      - key: "compliance.hipaa"
+        operator: "Equal"
+        value: "required"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agi-healthcare-service
+  namespace: agentforge-healthcare
+  labels:
+    component: "agi-core"
+    compliance: "hipaa"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+    name: https
+  selector:
+    app: agi-healthcare-core
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthcare-config
+  namespace: agentforge-healthcare
+data:
+  agi_config.yaml: |
+    deployment:
+      type: "healthcare"
+      compliance: "HIPAA"
+      data_classification: "PHI"
+    
+    neural_mesh:
+      tier_config: "L3_HEALTHCARE"
+      encryption: "AES-256-GCM"
+      phi_protection: true
+      data_residency: "US_HEALTHCARE"
+      retention_days: 2555  # 7 years for medical records
+      anonymization: "differential_privacy"
+    
+    quantum_scheduler:
+      mode: "HEALTHCARE_OPTIMIZED"
+      max_agents: 50000
+      priority_queues: 4
+      patient_priority: true
+      emergency_override: true
+    
+    universal_io:
+      input_types:
+        - "EHR_RECORDS"
+        - "MEDICAL_IMAGING"
+        - "LAB_RESULTS"
+        - "CLINICAL_NOTES"
+        - "GENOMIC_DATA"
+        - "WEARABLE_DATA"
+        - "RESEARCH_PAPERS"
+        - "DRUG_DATABASE"
+      output_types:
+        - "DIAGNOSIS_RECOMMENDATION"
+        - "TREATMENT_PLAN"
+        - "DRUG_INTERACTION_ALERT"
+        - "CLINICAL_DECISION_SUPPORT"
+        - "RESEARCH_INSIGHTS"
+        - "POPULATION_HEALTH_REPORT"
+    
+    security:
+      zero_trust: true
+      phi_encryption: "AES-256-GCM"
+      audit_level: "COMPREHENSIVE"
+      data_classification: "PHI"
+      anonymization: "enabled"
+      consent_management: "enabled"
+    
+    use_cases:
+      - name: "Clinical Decision Support"
+        description: "AI-powered diagnosis and treatment recommendations"
+        priority: "CRITICAL"
+        agents: 15000
+        phi_access: true
+        
+      - name: "Drug Discovery Acceleration"
+        description: "Accelerate pharmaceutical research and development"
+        priority: "HIGH"
+        agents: 10000
+        phi_access: false
+        
+      - name: "Medical Imaging Analysis"
+        description: "Advanced AI analysis of medical imaging (X-ray, MRI, CT)"
+        priority: "HIGH"
+        agents: 8000
+        phi_access: true
+        
+      - name: "Population Health Analytics"
+        description: "Large-scale health trend analysis and prediction"
+        priority: "MEDIUM"
+        agents: 7000
+        phi_access: true
+        
+      - name: "Personalized Medicine"
+        description: "Tailored treatment plans based on genomic and clinical data"
+        priority: "HIGH"
+        agents: 10000
+        phi_access: true
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: agi-healthcare-vs
+  namespace: agentforge-healthcare
+spec:
+  hosts:
+  - agi-healthcare.medical.internal
+  gateways:
+  - healthcare-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: agi-healthcare-service
+        port:
+          number: 443
+    headers:
+      request:
+        set:
+          X-Compliance: "HIPAA"
+          X-Data-Classification: "PHI"
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: healthcare-peer-auth
+  namespace: agentforge-healthcare
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: healthcare-authz
+  namespace: agentforge-healthcare
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/agentforge-healthcare/sa/agi-healthcare-sa"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+  when:
+  - key: request.headers[x-compliance]
+    values: ["HIPAA"]
+  - key: request.headers[x-data-classification]
+    values: ["PHI"]

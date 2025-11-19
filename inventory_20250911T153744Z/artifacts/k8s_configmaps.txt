@@ -1,5 +1,0 @@
-NAME                              DATA   AGE
-agentforge-config                 19     6d16h
-grafana-tool-executor-dashboard   1      34h
-kube-root-ca.crt                  1      6d17h
-otel-collector-config             1      4d11h

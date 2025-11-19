@@ -1,0 +1,58 @@
+apiVersion: v2
+name: agentforge
+description: A Helm chart for AgentForge multi-agent orchestration platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - ai
+  - agents
+  - orchestration
+  - microservices
+  - llm
+
+home: https://github.com/agentforge/agentforge
+sources:
+  - https://github.com/agentforge/agentforge
+
+maintainers:
+  - name: AgentForge Team
+    email: team@agentforge.io
+
+annotations:
+  category: AI/ML
+  licenses: MIT
+
+dependencies:
+  # Optional dependencies that can be enabled
+  - name: redis
+    version: "17.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    tags:
+      - database
+  - name: nats
+    version: "0.19.x"
+    repository: "https://nats-io.github.io/k8s/helm/charts/"
+    condition: nats.enabled
+    tags:
+      - messaging
+  - name: postgresql
+    version: "12.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    tags:
+      - database
+  - name: prometheus
+    version: "15.x.x"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: monitoring.prometheus.enabled
+    tags:
+      - monitoring
+  - name: grafana
+    version: "6.x.x"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.grafana.enabled
+    tags:
+      - monitoring

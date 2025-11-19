@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #05080D; --text: #D6E2F0; --accent: #00A39B; --grid: #0E1622; --lines: #0F2237;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica Neue, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+[data-theme="night"] { --bg:#000; --text:#FF2B2B; --accent:#FF2B2B; --grid:#1a0000; --lines:#891616; }
+
+html, body, #__next { 
+  height: 100%; 
+  background: #05080D;
+  color: #D6E2F0;
+}
+body { 
+  background: var(--bg); 
+  color: var(--text); 
+  font-family: var(--font-sans); 
+  margin: 0;
+  padding: 0;
+}
+* { -webkit-tap-highlight-color: transparent; }
+
+.hud-card { @apply rounded-2xl shadow-hud backdrop-blur bg-white/5 dark:bg-black/30 border border-white/10; }
+.label { @apply uppercase tracking-widest text-[10px] opacity-70; }
+.value { @apply font-mono text-sm md:text-base; }
+
+[data-theme="night"] .hud-card { @apply border-red-900/40; background: rgba(0,0,0,.55); color: var(--text); text-shadow: 0 0 8px rgba(255,30,30,.2); }
+.btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium transition border border-white/10 bg-white/5 hover:bg-white/10; }
+[data-theme="night"] .btn { @apply border-red-900/50 hover:bg-red-900/10; }
+.input { @apply w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none; }
+[data-theme="night"] .input { @apply border-red-900/50; }

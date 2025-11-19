@@ -1,0 +1,222 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentforge-mega-swarm
+  namespace: agentforge-production
+  labels:
+    app: agentforge
+    component: mega-swarm
+spec:
+  replicas: 100  # Start with 100 replicas for million-scale base
+  selector:
+    matchLabels:
+      app: agentforge
+      component: mega-swarm
+  template:
+    metadata:
+      labels:
+        app: agentforge
+        component: mega-swarm
+    spec:
+      containers:
+      - name: mega-swarm
+        image: agentforge/mega-swarm:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: AF_ENVIRONMENT
+          value: "production"
+        - name: AF_MAX_AGENTS
+          value: "1000000"
+        - name: AF_MEGA_SWARM_ENABLED
+          value: "true"
+        - name: AF_QUANTUM_SCHEDULER_ENABLED
+          value: "true"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: redis-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: openai-api-key
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "16Gi"
+            cpu: "8000m"
+            nvidia.com/gpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentforge-mega-swarm
+  namespace: agentforge-production
+  labels:
+    app: agentforge
+    component: mega-swarm
+spec:
+  selector:
+    app: agentforge
+    component: mega-swarm
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentforge-neural-mesh
+  namespace: agentforge-production
+  labels:
+    app: agentforge
+    component: neural-mesh
+spec:
+  replicas: 20
+  selector:
+    matchLabels:
+      app: agentforge
+      component: neural-mesh
+  template:
+    metadata:
+      labels:
+        app: agentforge
+        component: neural-mesh
+    spec:
+      containers:
+      - name: neural-mesh
+        image: agentforge/neural-mesh:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: AF_NEURAL_MESH_ENABLED
+          value: "true"
+        - name: AF_L4_GLOBAL_MEMORY_ENABLED
+          value: "true"
+        - name: PINECONE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: pinecone-api-key
+        - name: NEO4J_URI
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: neo4j-uri
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "4000m"
+          limits:
+            memory: "32Gi"
+            cpu: "16000m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentforge-neural-mesh
+  namespace: agentforge-production
+spec:
+  selector:
+    app: agentforge
+    component: neural-mesh
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentforge-orchestrator
+  namespace: agentforge-production
+  labels:
+    app: agentforge
+    component: orchestrator
+spec:
+  replicas: 50
+  selector:
+    matchLabels:
+      app: agentforge
+      component: orchestrator
+  template:
+    metadata:
+      labels:
+        app: agentforge
+        component: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: agentforge/orchestrator:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: AF_MAX_CONCURRENT_JOBS
+          value: "100000"
+        - name: AF_INTELLIGENT_SCALING
+          value: "true"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            secretKeyRef:
+              name: agentforge-secrets
+              key: kafka-bootstrap-servers
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentforge-orchestrator
+  namespace: agentforge-production
+spec:
+  selector:
+    app: agentforge
+    component: orchestrator
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP

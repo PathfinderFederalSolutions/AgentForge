@@ -1,0 +1,63 @@
+# namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-swarm-frontend
+  namespace: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-swarm-frontend
+  template:
+    metadata:
+      labels:
+        app: agent-swarm-frontend
+    spec:
+      containers:
+        - name: web
+          image: REPLACE_WITH_${FRONTEND_IMAGE}
+          ports:
+            - containerPort: 3000
+          env:
+            # point the UI at your backend (adjust host/port)
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: "http://agent-swarm-service.web.svc.cluster.local:8080"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-swarm-frontend
+  namespace: web
+spec:
+  selector:
+    app: agent-swarm-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: ClusterIP

@@ -1,0 +1,357 @@
+# AgentForge Enterprise Pilot Deployment
+# Multi-Tenant SaaS AGI for Enterprise Applications
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-enterprise
+  labels:
+    compliance.framework: "SOC2-ISO27001"
+    deployment.type: "saas"
+    pilot.type: "enterprise"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agi-enterprise-core
+  namespace: agentforge-enterprise
+  labels:
+    component: "agi-core"
+    compliance: "soc2-iso27001"
+    deployment: "multi-tenant"
+spec:
+  replicas: 6  # High availability for enterprise SaaS
+  selector:
+    matchLabels:
+      app: agi-enterprise-core
+  template:
+    metadata:
+      labels:
+        app: agi-enterprise-core
+        compliance.framework: "soc2-iso27001"
+      annotations:
+        security.istio.io/tlsMode: "STRICT"
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: agi-enterprise-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        fsGroup: 10003
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agi-core
+        image: agentforge/agi-enterprise:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: DEPLOYMENT_TYPE
+          value: "enterprise"
+        - name: COMPLIANCE_FRAMEWORK
+          value: "SOC2-ISO27001"
+        - name: MULTI_TENANT
+          value: "true"
+        - name: NEURAL_MESH_TIER
+          value: "L3_ENTERPRISE"
+        - name: QUANTUM_SCHEDULER_MODE
+          value: "ENTERPRISE_OPTIMIZED"
+        - name: AGENT_SCALE_TARGET
+          value: "200000"  # 200K agents for enterprise operations
+        - name: TENANT_ISOLATION
+          value: "strict"
+        - name: DATA_ENCRYPTION
+          value: "AES-256-GCM"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: enterprise-redis-secret
+              key: url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: enterprise-db-secret
+              key: url
+        resources:
+          requests:
+            cpu: "4"
+            memory: "16Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "32Gi"
+            nvidia.com/gpu: "2"
+        volumeMounts:
+        - name: enterprise-data
+          mountPath: /data/enterprise
+          readOnly: false
+        - name: tenant-configs
+          mountPath: /etc/tenants
+          readOnly: true
+        - name: enterprise-configs
+          mountPath: /etc/enterprise
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: enterprise-data
+        persistentVolumeClaim:
+          claimName: enterprise-data-pvc
+      - name: tenant-configs
+        configMap:
+          name: tenant-configurations
+      - name: enterprise-configs
+        configMap:
+          name: enterprise-config
+      nodeSelector:
+        workload.type: "enterprise"
+        performance.tier: "high"
+      tolerations:
+      - key: "workload.type"
+        operator: "Equal"
+        value: "enterprise"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agi-enterprise-service
+  namespace: agentforge-enterprise
+  labels:
+    component: "agi-core"
+    compliance: "soc2-iso27001"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+    name: https
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: agi-enterprise-core
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enterprise-config
+  namespace: agentforge-enterprise
+data:
+  agi_config.yaml: |
+    deployment:
+      type: "enterprise"
+      compliance: "SOC2-ISO27001"
+      multi_tenant: true
+      tenant_isolation: "strict"
+    
+    neural_mesh:
+      tier_config: "L3_ENTERPRISE"
+      encryption: "AES-256-GCM"
+      tenant_separation: true
+      data_residency: "CONFIGURABLE"
+      retention_days: 2555  # 7 years default
+      gdpr_compliance: true
+    
+    quantum_scheduler:
+      mode: "ENTERPRISE_OPTIMIZED"
+      max_agents: 200000
+      priority_queues: 6
+      tenant_quotas: true
+      resource_isolation: true
+      auto_scaling: true
+    
+    universal_io:
+      input_types:
+        - "BUSINESS_DOCUMENTS"
+        - "SPREADSHEETS"
+        - "PRESENTATIONS"
+        - "EMAILS"
+        - "CRM_DATA"
+        - "ERP_DATA"
+        - "FINANCIAL_DATA"
+        - "CUSTOMER_DATA"
+        - "MARKET_DATA"
+        - "SOCIAL_MEDIA"
+      output_types:
+        - "BUSINESS_REPORTS"
+        - "DASHBOARDS"
+        - "PRESENTATIONS"
+        - "RECOMMENDATIONS"
+        - "FORECASTS"
+        - "WEB_APPLICATIONS"
+        - "MOBILE_APPS"
+        - "APIS"
+        - "WORKFLOWS"
+    
+    security:
+      zero_trust: true
+      tenant_isolation: "strict"
+      data_encryption: "AES-256-GCM"
+      audit_level: "COMPREHENSIVE"
+      sso_integration: true
+      rbac: "enabled"
+    
+    use_cases:
+      - name: "Intelligent Business Analytics"
+        description: "Advanced analytics and insights from business data"
+        priority: "HIGH"
+        agents: 40000
+        tenant_isolated: true
+        
+      - name: "Automated Content Generation"
+        description: "Generate reports, presentations, and marketing content"
+        priority: "HIGH"
+        agents: 35000
+        tenant_isolated: true
+        
+      - name: "Customer Service Automation"
+        description: "AI-powered customer support and service automation"
+        priority: "HIGH"
+        agents: 30000
+        tenant_isolated: true
+        
+      - name: "Predictive Business Intelligence"
+        description: "Forecast trends and business outcomes"
+        priority: "MEDIUM"
+        agents: 25000
+        tenant_isolated: true
+        
+      - name: "Process Automation"
+        description: "Automate complex business processes and workflows"
+        priority: "MEDIUM"
+        agents: 35000
+        tenant_isolated: true
+        
+      - name: "Knowledge Management"
+        description: "Intelligent knowledge discovery and management"
+        priority: "MEDIUM"
+        agents: 20000
+        tenant_isolated: true
+        
+      - name: "Financial Analysis"
+        description: "Advanced financial modeling and risk analysis"
+        priority: "HIGH"
+        agents: 15000
+        tenant_isolated: true
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: agi-enterprise-vs
+  namespace: agentforge-enterprise
+spec:
+  hosts:
+  - api.agentforge.com
+  - "*.agentforge.com"
+  gateways:
+  - enterprise-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /api/v1/
+    route:
+    - destination:
+        host: agi-enterprise-service
+        port:
+          number: 443
+    headers:
+      request:
+        set:
+          X-Deployment-Type: "enterprise"
+          X-Compliance: "SOC2-ISO27001"
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: agi-enterprise-service
+        port:
+          number: 443
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agi-enterprise-hpa
+  namespace: agentforge-enterprise
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agi-enterprise-core
+  minReplicas: 6
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: agi_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: enterprise-peer-auth
+  namespace: agentforge-enterprise
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: enterprise-authz
+  namespace: agentforge-enterprise
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/agentforge-enterprise/sa/agi-enterprise-sa"]
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+  when:
+  - key: request.headers[x-deployment-type]
+    values: ["enterprise"]

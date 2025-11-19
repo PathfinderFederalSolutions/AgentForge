@@ -1,2 +1,0 @@
-NAME                      STATUS   COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES              SELECTOR
-pg-maintenance-29292690   Failed   0/1           12h        12h   pg-maint     agentforge:latest   batch.kubernetes.io/controller-uid=c05c2070-12be-4548-b2b3-cf4a055aa302

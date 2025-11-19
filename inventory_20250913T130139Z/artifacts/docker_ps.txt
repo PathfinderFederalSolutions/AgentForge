@@ -1,2 +1,0 @@
-NAMES                IMAGE                  STATUS
-kind-control-plane   kindest/node:v1.34.0   Up 45 hours

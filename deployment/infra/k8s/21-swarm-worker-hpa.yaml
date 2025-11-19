@@ -1,0 +1,20 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: swarm-worker
+  namespace: agentforge-staging
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: swarm-worker
+  minReplicas: 2
+  maxReplicas: 200
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Optional: add an External metric for NATS consumer lag

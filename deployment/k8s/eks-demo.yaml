@@ -1,0 +1,22 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: agentforge-demo
+  region: us-east-1
+managedNodeGroups:
+  - name: general
+    instanceTypes: ["m6i.large"]
+    desiredCapacity: 3
+    minSize: 2
+    maxSize: 6
+    labels: { nodeclass: general }
+  - name: gpu
+    instanceTypes: ["g5.xlarge"]
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 3
+    labels: { nodeclass: gpu }
+    taints:
+      - key: "gpu"
+        value: "true"
+        effect: "NoSchedule"

@@ -1,0 +1,240 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentforge-orchestrator
+  namespace: agentforge-production
+  labels:
+    app: agentforge-orchestrator
+    component: orchestration
+  annotations:
+    agentforge.io/component: "enhanced-orchestrator"
+    agentforge.io/hardening: "enabled"
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: agentforge-orchestrator
+  template:
+    metadata:
+      labels:
+        app: agentforge-orchestrator
+        component: orchestration
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: agentforge-orchestrator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: agentforge-orchestrator
+              topologyKey: kubernetes.io/hostname
+      
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: config
+          configMap:
+            name: agentforge-config
+        - name: secrets
+          secret:
+            secretName: agentforge-secrets
+      
+      containers:
+        - name: orchestrator
+          image: agentforge-orchestrator:production-v1.0.0
+          command: 
+            - "python"
+            - "-m"
+            - "services.orchestrator.enhanced_orchestration"
+          imagePullPolicy: IfNotPresent
+          
+          envFrom:
+            - configMapRef:
+                name: agentforge-config
+            - secretRef:
+                name: agentforge-secrets
+          
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: ORCHESTRATOR_ID
+              value: "$(POD_NAME)"
+            - name: ENHANCED_ORCHESTRATION_ENABLED
+              value: "true"
+            - name: MAX_CONCURRENT_TASKS
+              value: "100000"
+            - name: DLQ_MAX_SIZE
+              value: "10000"
+          
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+              ephemeral-storage: "5Gi"
+          
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+          
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/cache
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentforge-orchestrator
+  namespace: agentforge-production
+  labels:
+    app: agentforge-orchestrator
+    component: orchestration
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
+    - name: health
+      port: 8080
+      targetPort: health
+      protocol: TCP
+  selector:
+    app: agentforge-orchestrator
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agentforge-orchestrator-hpa
+  namespace: agentforge-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agentforge-orchestrator
+  minReplicas: 5
+  maxReplicas: 50
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: agentforge_task_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "1000"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentforge-config
+  namespace: agentforge-staging
+data:
+  APP_ENV: "staging"
+  TELEMETRY_ENABLED: "true"
+  NATS_URL: "nats://nats:4222"
+  NATS_STREAM: "agentforge"
+  API_BASE_PATH: "/"
+---

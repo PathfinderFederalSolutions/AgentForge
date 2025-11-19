@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: agentforge-staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: orchestrator }
+  template:
+    metadata:
+      labels: { app: orchestrator }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "7777"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: orchestrator-sa
+      containers:
+        - name: orchestrator
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/agentforge-orchestrator:<TAG>
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: url
+            - name: PGHOST
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: host
+            - name: PGPORT
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: port
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: password
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: agentforge-db
+                  key: dbname
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: agentforge-config
+                  key: NATS_URL
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: agentforge-config
+                  key: APP_ENV
+          ports:
+            - name: http
+              containerPort: 3000
+            - name: metrics
+              containerPort: 7777
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /livez, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "1", memory: "1Gi" }
+---

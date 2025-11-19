@@ -1,0 +1,27 @@
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo add grafana https://grafana.github.io/helm-charts
+#   helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+#     -n agentforge-staging -f kube-prometheus-stack-values.yaml
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    replicas: 1
+grafana:
+  enabled: true
+  adminPassword: <GRAFANA_ADMIN_PASSWORD>
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hosts: ["grafana.<PUBLIC_DNS_FOR_AGENTFORGE>"]
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/certificate-arn: <ACM_CERT_ARN>
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retention: 7d
+---

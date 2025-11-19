@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-swarm-frontend
+  namespace: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: agent-swarm-frontend }
+  template:
+    metadata:
+      labels: { app: agent-swarm-frontend }
+    spec:
+      containers:
+        - name: web
+          image: 375539416169.dkr.ecr.us-east-1.amazonaws.com/agent-swarm-frontend:ui-revamp
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: { path: "/", port: 3000 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: "/", port: 3000 }
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-swarm-frontend
+  namespace: web
+spec:
+  selector: { app: agent-swarm-frontend }
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: ClusterIP

@@ -1,0 +1,26 @@
+# GPU worker image (CUDA + PyTorch runtime)
+FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# tini for clean signal handling
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# install base then GPU deps (we already created these at repo root)
+COPY requirements.base.txt requirements.gpu.txt ./
+RUN pip install -r requirements.base.txt && pip install -r requirements.gpu.txt
+
+# copy only the worker’s code into the image
+COPY services/swarm-worker /app/services/swarm-worker
+
+# default start command; pass device via env if your code supports it
+ENV AF_DEVICE=cuda
+ENTRYPOINT ["tini","--"]
+CMD ["python","-m","services.swarm_worker.main"]

@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements*.txt /tmp/
 RUN python -m pip install --upgrade pip setuptools wheel && \
     if [ -f /tmp/requirements.txt ]; then pip install -r /tmp/requirements.txt; fi && \
-    if [ -f /tmp/requirements-dev.txt ]; then pip install -r /tmp/requirements-dev.txt; fi
+    if [ -f /tmp/requirements.dev.txt ]; then pip install -r /tmp/requirements.dev.txt; fi
 
 # Copy app
 COPY . /app

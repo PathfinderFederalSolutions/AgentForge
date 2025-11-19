@@ -1,0 +1,271 @@
+# AgentForge Defense Pilot Deployment
+# Mission-Critical AGI for Defense and Intelligence Operations
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentforge-defense
+  labels:
+    security.classification: "secret"
+    compliance.framework: "CMMC-2.0"
+    pilot.type: "defense"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agi-defense-core
+  namespace: agentforge-defense
+  labels:
+    component: "agi-core"
+    classification: "secret"
+    mission: "intelligence-fusion"
+spec:
+  replicas: 5  # High availability for mission-critical operations
+  selector:
+    matchLabels:
+      app: agi-defense-core
+  template:
+    metadata:
+      labels:
+        app: agi-defense-core
+        security.classification: "secret"
+      annotations:
+        security.istio.io/tlsMode: "STRICT"
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: agi-defense-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: agi-core
+        image: agentforge/agi-defense:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        env:
+        - name: DEPLOYMENT_TYPE
+          value: "defense"
+        - name: SECURITY_LEVEL
+          value: "secret"
+        - name: COMPLIANCE_FRAMEWORK
+          value: "CMMC-2.0"
+        - name: NEURAL_MESH_TIER
+          value: "L3_CLASSIFIED"
+        - name: QUANTUM_SCHEDULER_MODE
+          value: "DEFENSE_OPTIMIZED"
+        - name: AGENT_SCALE_TARGET
+          value: "100000"  # 100K agents for defense operations
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: defense-redis-secret
+              key: url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: defense-db-secret
+              key: url
+        resources:
+          requests:
+            cpu: "4"
+            memory: "16Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "32Gi"
+            nvidia.com/gpu: "2"
+        volumeMounts:
+        - name: classified-data
+          mountPath: /data/classified
+          readOnly: false
+        - name: intel-feeds
+          mountPath: /data/intel
+          readOnly: true
+        - name: defense-configs
+          mountPath: /etc/defense
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: classified-data
+        persistentVolumeClaim:
+          claimName: defense-classified-pvc
+      - name: intel-feeds
+        secret:
+          secretName: intel-feeds-secret
+      - name: defense-configs
+        configMap:
+          name: defense-config
+      nodeSelector:
+        security.classification: "secret"
+        hardware.type: "gpu-enabled"
+      tolerations:
+      - key: "security.classification"
+        operator: "Equal"
+        value: "secret"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agi-defense-service
+  namespace: agentforge-defense
+  labels:
+    component: "agi-core"
+    classification: "secret"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+    name: https
+  selector:
+    app: agi-defense-core
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: defense-config
+  namespace: agentforge-defense
+data:
+  agi_config.yaml: |
+    deployment:
+      type: "defense"
+      classification: "secret"
+      compliance: "CMMC-2.0"
+    
+    neural_mesh:
+      tier_config: "L3_CLASSIFIED"
+      encryption: "AES-256-GCM"
+      data_residency: "US_ONLY"
+      retention_days: 2555  # 7 years
+    
+    quantum_scheduler:
+      mode: "DEFENSE_OPTIMIZED"
+      max_agents: 100000
+      priority_queues: 5
+      real_time_tasks: true
+    
+    universal_io:
+      input_types:
+        - "SIGINT"
+        - "GEOINT" 
+        - "HUMINT"
+        - "OSINT"
+        - "RADAR"
+        - "SATELLITE"
+        - "SENSOR_FUSION"
+      output_types:
+        - "INTELLIGENCE_REPORT"
+        - "THREAT_ASSESSMENT"
+        - "TACTICAL_RECOMMENDATION"
+        - "MISSION_BRIEFING"
+        - "SITUATIONAL_AWARENESS"
+    
+    security:
+      zero_trust: true
+      mTLS: "STRICT"
+      audit_level: "COMPREHENSIVE"
+      data_classification: "SECRET"
+    
+    use_cases:
+      - name: "Multi-Source Intelligence Fusion"
+        description: "Fuse intelligence from multiple sources (SIGINT, GEOINT, HUMINT, OSINT)"
+        priority: "CRITICAL"
+        agents: 25000
+        
+      - name: "Real-Time Threat Detection"
+        description: "Continuous monitoring and threat identification"
+        priority: "HIGH"
+        agents: 20000
+        
+      - name: "Tactical Decision Support"
+        description: "AI-powered tactical recommendations for field operations"
+        priority: "HIGH"
+        agents: 15000
+        
+      - name: "Predictive Analysis"
+        description: "Anticipate enemy movements and strategic intentions"
+        priority: "MEDIUM"
+        agents: 10000
+        
+      - name: "Mission Planning Optimization"
+        description: "Optimize mission plans using AI analysis"
+        priority: "MEDIUM"
+        agents: 10000
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: agi-defense-vs
+  namespace: agentforge-defense
+spec:
+  hosts:
+  - agi-defense.classified.mil
+  gateways:
+  - defense-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: agi-defense-service
+        port:
+          number: 443
+    headers:
+      request:
+        set:
+          X-Classification: "SECRET"
+          X-Compliance: "CMMC-2.0"
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: defense-peer-auth
+  namespace: agentforge-defense
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: defense-authz
+  namespace: agentforge-defense
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/agentforge-defense/sa/agi-defense-sa"]
+  - to:
+    - operation:
+        methods: ["GET", "POST"]
+  when:
+  - key: request.headers[x-classification]
+    values: ["SECRET"]

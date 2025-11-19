@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agentforge-slo-rules
+  namespace: agentforge-staging
+spec:
+  groups:
+    - name: agentforge.slo
+      rules:
+        - alert: NATSBacklogHigh
+          expr: sum(rate(agentforge_tool_exec_backlog_gauge[5m])) > 100
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NATS backlog elevated"
+            description: "Tool exec backlog growing above 100 ops/min for 10m"
+---
